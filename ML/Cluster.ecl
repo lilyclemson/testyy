@@ -595,8 +595,12 @@ EXPORT Cluster := MODULE
 					//Get deltaG: the maximum drift of the centroids in each group
 					//The value of deltaG is a single value if there is only one group.
 					dGroupDeltaC :=JOIN(dDeltaC, Gt, LEFT.id = RIGHT.x, TRANSFORM(Mat.Types.Element,SELF.value := LEFT.value; SELF := RIGHT;));
-					dDeltaG := DEDUP(SORT(DISTRIBUTE(dGroupDeltaC,y),y,value,LOCAL),y,RIGHT);
-
+//					dDeltaG := DEDUP(SORT(DISTRIBUTE(dGroupDeltaC,y),y,value,LOCAL),y,RIGHT);
+					
+					//*******remove distribute
+					dDeltaG := DEDUP(SORT(dGroupDeltaC,y,value),y,RIGHT);
+					//********remove distribute
+					
 					//Update dUbItr : ub1_temp = dUbItr + dDeltaC
 					dUbGroupFilter := JOIN(dUbItr, dDeltaC, LEFT.y = RIGHT.id, TRANSFORM(Mat.Types.Element, SElF.value := LEFT.value + RIGHT.value; SELF := LEFT;));
 					//Update dLbsItr : lbs1_temp = dLbsItr - dDeltaG
