@@ -125,7 +125,7 @@ dCentroidMatrix:=DATASET([
 
 ML.ToField(dDocumentMatrix,dDocuments);
 ML.ToField(dCentroidMatrix,dCentroids);
-
+/*
                                                          // EXAMPLES
 KMeans:=ML.Cluster.KMeans(dDocuments,dCentroids,30,.3);  // Set up KMeans with a maximum of 30 iterations and .3 as a convergence threshold
 KMeans.Allresults;                                       // The table that contains the results of each iteration
@@ -136,9 +136,9 @@ KMeans.Delta(0);                                         // The total distance t
 KMeans.DistanceDelta(5,15);                              // The straight-line distance travelled by each centroid from iterations 5 to 15
 KMeans.DistanceDelta(0);                                 // The total straight-line distance each centroid travelled 
 KMeans.DistanceDelta();                                  // The distance travelled by each centroid during the last iteration.
+*/
 
 
-/*
 YinyangKMeans:=ML.Cluster.YinyangKMeans(dDocuments,dCentroids,30,.3); 		// Set up YinYangKMeans with a maximum of 30 iterations and .3 as a convergence threshold
 YinyangKMeans.Allresults;                                       					// The table that contains the results of each iteration
 YinyangKMeans.Convergence;                                      					// The number of iterations it took to converge
@@ -148,4 +148,3 @@ YinyangKMeans.Delta(0);                                         					// The tota
 YinyangKMeans.DistanceDelta(5,15);                              					// The straight-line distance travelled by each centroid from iterations 5 to 15
 YinyangKMeans.DistanceDelta(0);                                 					// The total straight-line distance each centroid travelled 
 YinyangKMeans.DistanceDelta();                                  					// The distance travelled by each centroid during the last iteration.
-*/
