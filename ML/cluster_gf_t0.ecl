@@ -9,7 +9,7 @@ IMPORT * FROM $;
 IMPORT Std.Str AS Str;
 IMPORT ML.Mat;
 
-EXPORT Cluster1 := MODULE
+EXPORT Cluster_gf_t0 := MODULE
 
 	// Working structure for cluster distance logic
   SHARED ClusterPair:=RECORD
@@ -588,27 +588,29 @@ EXPORT Cluster1 := MODULE
 					//Get deltac: the drift of each centroid between each iteration				
 					//Calculate the deltaC by using the distatnce measurement required by the user
 					dDeltaC := dDistanceDelta(c,c-1,dCentroidsIn, fDist);
-					
+					bConverged:=IF(c=1,FALSE,MAX(dDeltaC,value)<=nConverge);
 					//Get deltaG: the maximum drift of the centroids in each group
 					//The value of deltaG is a single value if there is only one group.
 					dGroupDeltaC :=JOIN(dDeltaC, Gt, LEFT.id = RIGHT.x, TRANSFORM(Mat.Types.Element,SELF.value := LEFT.value; SELF := RIGHT;));
 	//				dDeltaG := DEDUP(SORT(DISTRIBUTE(dGroupDeltaC,y),y,value,LOCAL),y,RIGHT);
 					
 					//*******Use TABLE() instead of DEDUP to get dDeltaG
-         dDeltaG1 := TABLE(dGroupDeltaC, {y, v:=MAX(GROUP,value);},y,FEW, UNSORTED);
-         dDeltaG := PROJECT(dDeltaG1, TRANSFORM({LEFT.y,Mat.Types.Element.value}, SELF.y := LEFT.y, SELF.value := LEFT.v));
+         // dDeltaG1 := TABLE(dGroupDeltaC, {y, v:=MAX(GROUP,value);},y,FEW, UNSORTED);
+				 dDeltaG1 := SORT(dGroupDeltaC, y,-value);
+				 dDeltaG := DEDUP(dDeltaG1,y); 
+         // dDeltaG := PROJECT(dDeltaG1, TRANSFORM({LEFT.y,Mat.Types.Element.value}, SELF.y := LEFT.y, SELF.value := LEFT.v));
 					
 					//Update dUbItr : ub1_temp = dUbItr + dDeltaC
 					dUbGroupFilter := JOIN(dUbItr, dDeltaC, LEFT.y = RIGHT.id, TRANSFORM(Mat.Types.Element, SElF.value := LEFT.value + RIGHT.value; SELF := LEFT;));
 					//Update dLbsItr : lbs1_temp = dLbsItr - dDeltaG
-					dLbsGroupFilter := JOIN(dLbsItr, dDeltaG, LEFT.y = RIGHT.y , TRANSFORM(Mat.Types.Element, SELF.value := LEFT.value - RIGHT.value; SELF := LEFT), ALL);
+					dLbsGroupFilter := JOIN(dLbsItr, dDeltaG, LEFT.y = RIGHT.y , TRANSFORM(Mat.Types.Element, SELF.value := ABS(LEFT.value - RIGHT.value); SELF := LEFT), ALL);
 
 					//Group Filter 		
 //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 			dMap1 := PROJECT(dUbItr, TRANSFORM(ClusterPair, SELF.id := LEFT.x; SELF.clusterid := LEFT.y; SELF.number := 0; SELF.value01 := LEFT.value; SELF.value02 := 0; SELF.value03 := 0;));		
 			dMappedDistances1 := SORT(MappedDistances(d01,dCentroidIn,fDist,dMap1), x, value);	
 			ub1_changed_temp := Closest(dMappedDistances1);
-      groupFilter1 := JOIN(dUbGroupFilter, dLbsGroupFilter,LEFT.x = RIGHT.x AND (LEFT.value < RIGHT.value), TRANSFORM(Mat.Types.Element, SELF := LEFT));	
+      groupFilter1 := JOIN(dLbsGroupFilter, dUbGroupFilter,LEFT.x = RIGHT.x AND (LEFT.value < RIGHT.value), TRANSFORM(Mat.Types.Element, SELF := LEFT));	
 			dMap2_temp := JOIN(groupFilter1, Gt, LEFT.y = RIGHT.y, TRANSFORM(Mat.Types.Element, SELF.x := LEFT.x, SELF.y := RIGHT.x, SELF.value := LEFT.value ));
 			dMap2 := PROJECT(dMap2_temp, TRANSFORM(ClusterPair, SELF.id := LEFT.x; SELF.clusterid := LEFT.y; SELF.number := 0; SELF.value01 := LEFT.value; SELF.value02 := 0; SELF.value03 := 0;));			
 			dMappedDistances2 := SORT(MappedDistances(d01,dCentroidIn,fDist,dMap2), x, value);	
@@ -637,7 +639,7 @@ EXPORT Cluster1 := MODULE
 					newCsTemp := JOIN(dCentroidsIn, dCentroidOut, LEFT.id = RIGHT.id AND LEFT.number=RIGHT.number,TRANSFORM(lIterations,SELF.values:=LEFT.values+[RIGHT.value];SELF:=LEFT;));
 					dCentroidsOut := PROJECT(newCsTemp, TRANSFORM(lInput,SELF.id := 1;SELF.values:=LEFT.values;SELF.y := LEFT.number; SELF.x:=LEFT.id;));					
 					dUbOut := JOIN(dUbIn, ub1, LEFT.x = RIGHT.x ,TRANSFORM(lInput,SELF.id := 2;SELF.values:=LEFT.values+[RIGHT.value];SELF.y := RIGHT.y; SELF:=LEFT;));
-					dLbsOut := JOIN(dLbsIn, lbs1, LEFT.x = RIGHT.x ,TRANSFORM(lInput,SELF.id := 3;SELF.values:=LEFT.values+[RIGHT.value];SELF.y := RIGHT.y; SELF:=LEFT;));
+					dLbsOut := JOIN(dLbsIn, lbs1, LEFT.x = RIGHT.x AND LEFT.y = RIGHT.y ,TRANSFORM(lInput,SELF.id := 3;SELF.values:=LEFT.values+[RIGHT.value]; SELF:=LEFT;));
 					//Integrate each dataset into one dataset as the output dataset
 					dOutput := dCentroidsOut+ dUbOut + dLbsOut;
 					
@@ -645,7 +647,7 @@ EXPORT Cluster1 := MODULE
 					//or no data points move to new cluster, then output the inputset and stop iteration.
 					//Or output the output and conitnue to next iteration
 					// RETURN IF( MAX(dDeltaC,value)<=nConverge OR COUNT(groupFilter1)=0,  d , dOutput );
-					RETURN IF( MAX(dDeltaC,value)<=nConverge, d, dOutput);
+					RETURN IF( bConverged, d, dOutput);
 
 		END;
 		dIterationResults :=LOOP(dInput,n-1,fIterate(ROWS(LEFT),COUNTER));

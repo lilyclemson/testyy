@@ -12,7 +12,7 @@ lData transDataset(lData l, INTEGER c):= TRANSFORM
 		SELF := l;
 END;
 
-dataTemp := DATASET('~lily::test::3dspatialnetwork.txt' ,lData,  CSV);
+dataTemp := DATASET('~::3dspatialnetwork.txt' ,lData,  CSV);
 EXPORT input :=PROJECT(dataTemp, transDataset(LEFT, COUNTER));
 // EXPORT input := TABLE(dataTemp, {LONGITUDE,LATITUDE,ALTITUDE});
 

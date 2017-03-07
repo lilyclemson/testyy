@@ -1,4 +1,4 @@
-﻿// K-MEANS AND YINYANG K-MEANS EXAMPLE
+﻿// K-MEANS EXAMPLE
 //
 // Presents K-Means clustering in a 2-dimensional space. 100 data points
 // are initialized with random values on the x and y axes, and 4 centroids
@@ -10,19 +10,22 @@
 //---------------------------------------------------------------------------
 
 IMPORT ML;
-// IMPORT excercise.relation20network as network;
-// lMatrix:={UNSIGNED id;REAL x;REAL y;};
-// dDocumentMatrix := network.input;
-// dCentroidMatrix := network.input[1..4];
 
 IMPORT excercise.irisset as irisset;
+IMPORT excercise.relation20network as network;
+IMPORT excercise.uscensus as uscensus;
 lMatrix:={UNSIGNED id;REAL x;REAL y;};
+//iris
+// dDocumentMatrix := irisset.input;
+// dCentroidMatrix := irisset.input[1..4];
+//KEGG
+// dDocumentMatrix := network.input;
+// dCentroidMatrix := network.input[1..4];
+//uscensus
+dDocumentMatrix := uscensus.input;
+dCentroidMatrix := uscensus.input[1..4];
 /*
-dDocumentMatrix := irisset.input;
-dCentroidMatrix := irisset.input[1..4];
-*/
-
-
+//DP100
 dDocumentMatrix:=DATASET([
 {1,2.4639,7.8579},
 {2,0.5573,9.4681},
@@ -132,23 +135,14 @@ dCentroidMatrix:=DATASET([
 {3,3,3},
 {4,4,4}
 ],lMatrix);
-
+*/
 ML.ToField(dDocumentMatrix,dDocuments);
 ML.ToField(dCentroidMatrix,dCentroids);
 
                                                       // EXAMPLES
 KMeans:=ML.Cluster1.KMeans(dDocuments,dCentroids,30,.3);  // Set up KMeans with a maximum of 30 iterations and .3 as a convergence threshold
 KMeans.Allresults;                                       // The table that contains the results of each iteration
- /* 
-KMeans.Convergence;                                      // The number of iterations it took to converge
-KMeans.Result(12);                                       // The results of iteration 12
-KMeans.Delta(5,15);                                      // The distance every centroid travelled across each axis from iterations 5 to 15
-KMeans.Delta(0);                                         // The total distance the centroids travelled on each axis
-KMeans.DistanceDelta(5,15);                              // The straight-line distance travelled by each centroid from iterations 5 to 15
-KMeans.DistanceDelta(0);                                 // The total straight-line distance each centroid travelled 
-KMeans.DistanceDelta();                                  // The distance travelled by each centroid during the last iteration.
-*/
 
 
-YinyangKMeans:= ML.Cluster1.YinyangKMeans(dDocuments,dCentroids,30,.3); 		// Set up YinYangKMeans with a maximum of 30 iterations and .3 as a convergence threshold
-YinyangKMeans.Allresults;                                       					// The table that contains the results of each iteration
+
+

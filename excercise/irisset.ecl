@@ -8,7 +8,7 @@ lData :=RECORD
     REAL Species;
 END;
 
-dataTemp := DATASET('~lily::iris.csv' ,lData,  CSV(HEADING(1)));
+dataTemp := DATASET('~::iris.csv' ,lData,  CSV(HEADING(1)));
 EXPORT input:= TABLE(dataTemp,{id,SepalLengthCm, SepalWidthCm, PetalLengthCm,PetalWidthCm});
 
 //OUTPUT(dataTemp);
