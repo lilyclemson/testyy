@@ -9,7 +9,7 @@ IMPORT * FROM $;
 IMPORT Std.Str AS Str;
 IMPORT ML.Mat;
 
-EXPORT loopfilter := MODULE
+EXPORT test := MODULE
 
 	// Working structure for cluster distance logic
   SHARED ClusterPair:=RECORD
@@ -566,12 +566,10 @@ EXPORT loopfilter := MODULE
 		
 		//****************************Initialize upper bound and lower bounds (lbs) of each data point******************
 	 // All the distances from each data points to each centroids
-
 		dDistances := Distances(d01,dCentroid0); 
 		
 		//Filter out the distance from a data point to its best centroid.
 	 //UpperBound
-	 //***
 		dUpperBound := TOPN(GROUP(dDistances,x, ALL), 1, value);
 		dClusterCounts_ini:=TABLE(dUpperBound,{y;UNSIGNED c:=COUNT(GROUP);},y,FEW);
 		dClustered_ini:=SORT(DISTRIBUTE(JOIN(d01,dUpperBound,LEFT.id=RIGHT.x,TRANSFORM(Types.NumericField,SELF.id:=RIGHT.y;SELF:=LEFT;),HASH),id),RECORD,LOCAL);
@@ -579,8 +577,14 @@ EXPORT loopfilter := MODULE
     dJoined_ini:=JOIN(dRolled_ini,dClusterCounts_ini,LEFT.id=RIGHT.y,TRANSFORM(Types.NumericField,SELF.value:=LEFT.value/RIGHT.c;SELF:=LEFT;),LOOKUP);		
     dPass_ini:=JOIN(dCentroid0,TABLE(dJoined_ini,{id},id,LOCAL),LEFT.id=RIGHT.id,TRANSFORM(LEFT),LEFT ONLY,LOOKUP);
 		dCentroid1 := dJoined_ini + dPass_ini;
-		
-		//****		//LowerBound
+//		dDistancesSub := JOIN(dDistances, dUpperBound, LEFT.x = RIGHT.x AND LEFT.y = RIGHT.y,LEFT ONLY);// dUpperBound will be moved to dDistances: redistribue btw nodes
+//		;
+//		//Use table instead of sort/dedup
+//    // Filter out the closest distances from all the distances
+//    dGroupDistancesSub := SORT(JOIN(dDistancesSub, Gt, LEFT.y = RIGHT.x, TRANSFORM(Mat.Types.Element,SELF.y := RIGHT.y, SELF := LEFT)),x, y, value);		
+//		//LowerBound
+//		dLowerBound := DEDUP(dGroupDistancesSub,LEFT.x = RIGHT.x AND LEFT.y = RIGHT.y);	
+//************
 		dDistancesSub := JOIN(dDistances, dUpperBound, LEFT.x = RIGHT.x AND LEFT.y = RIGHT.y,LEFT ONLY);// dUpperBound will be moved to dDistances: redistribue btw nodes
         dGroupDistancesSub := GROUP(JOIN(dDistancesSub, Gt, LEFT.y = RIGHT.x, TRANSFORM(Mat.Types.Element,SELF.y := RIGHT.y, SELF := LEFT), LOOKUP),x, y, LOCAL);		
 		dLowerBound := TOPN(dGroupDistancesSub,1, value);	
@@ -622,11 +626,13 @@ EXPORT loopfilter := MODULE
 					 // dDeltaC := MappedDistanceDelta(c,c-1,dCentroidsIn,fDist);
 					//deltaG: the maximum drift of the centroids in each group
 					//The value of deltaG is a single value if there is only one group.
-					dGroupDeltaC :=JOIN(Gt, dDeltaC,  RIGHT.id = LEFT.x, TRANSFORM(Mat.Types.Element,SELF.value := RIGHT.value; SELF := LEFT;), LOOKUP);	
+					dGroupDeltaC :=JOIN(dDeltaC, Gt, LEFT.id = RIGHT.x, TRANSFORM(Mat.Types.Element,SELF.value := LEFT.value; SELF := RIGHT;));
+	
 					//*******Use TABLE() instead of DEDUP to get dDeltaG
           dDeltaG1 := TABLE(dGroupDeltaC, {y, v:=MAX(GROUP,value);},y,FEW, UNSORTED);
+				 // dDeltaG1 := SORT(dGroupDeltaC, y,-value);
+				 // dDeltaG := DEDUP(dDeltaG1,y); 
           dDeltaG := PROJECT(dDeltaG1, TRANSFORM({LEFT.y,Mat.Types.Element.value}, SELF.y := LEFT.y, SELF.value := LEFT.v));
-          
 					
 					//Update dUbItr : ub1_temp = dUbItr + dDeltaC
 					dUbGroupFilter := JOIN(dUbItr, dDeltaC, LEFT.y = RIGHT.id, TRANSFORM(Mat.Types.Element, SElF.value := LEFT.value + RIGHT.value; SELF := LEFT;));
@@ -636,23 +642,23 @@ EXPORT loopfilter := MODULE
 
 					//Group Filter 		
 					dMap_dUbItr := PROJECT(dUbItr, TRANSFORM(ClusterPair, SELF.id := LEFT.x; SELF.clusterid := LEFT.y; SELF.number := 0; SELF.value01 := LEFT.value; SELF.value02 := 0; SELF.value03 := 0;));		
-					dMappedDistances_dUbItr := SORT(MappedDistances(d01,dCentroidIn,fDist,dMap_dUbItr), x, value);
-					dUbUpdate_temp := TOPN(GROUP(dMappedDistances_dUbItr,x, ALL), 1, value);
+					dMappedDistances_dUbItr := SORT(MappedDistances(d01,dCentroidIn,fDist,dMap_dUbItr), x, value);	
+					dUbUpdate_temp := Closest(dMappedDistances_dUbItr);
 					dGroupFilter := JOIN(dLbsGroupFilter, dUbGroupFilter,LEFT.x = RIGHT.x AND (LEFT.value < RIGHT.value), TRANSFORM(Mat.Types.Element, SELF := LEFT));	
 					dMap_groupFilter_temp := JOIN(dGroupFilter, Gt, LEFT.y = RIGHT.y, TRANSFORM(Mat.Types.Element, SELF.x := LEFT.x, SELF.y := RIGHT.x, SELF.value := LEFT.value ));
 					dMap_groupFilter := PROJECT(dMap_groupFilter_temp, TRANSFORM(ClusterPair, SELF.id := LEFT.x; SELF.clusterid := LEFT.y; SELF.number := 0; SELF.value01 := LEFT.value; SELF.value02 := 0; SELF.value03 := 0;));			
-					dUbUpdate := TOPN(GROUP(MappedDistances(d01,dCentroidIn,fDist,dMap_groupFilter),x, ALL), 1, value);
+					dMappedDistances_groupFilter := SORT(MappedDistances(d01,dCentroidIn,fDist,dMap_groupFilter), x, value);	
+					dUbUpdate := Closest(dMappedDistances_groupFilter);
 					
 					//Local Filter (Optimized) and  Calculate new Ub and new Lbs
 					dUbUpdate_changed := JOIN(dUbUpdate_temp, dUbUpdate, LEFT.x = RIGHT.x AND LEFT.value > RIGHT.value, TRANSFORM(RIGHT));
 					dUbUpdate_unchanged := JOIN(dUbUpdate_temp, dUbUpdate_changed, LEFT.x = RIGHT.x, TRANSFORM(LEFT),LEFT ONLY);
 					dUbNew := SORT(dUbUpdate_changed + dUbUpdate_unchanged, x, y, value);
 					dLbsUpdate_temp := JOIN(dMappedDistances_dUbItr, dUbUpdate_changed, LEFT.x = RIGHT.x, TRANSFORM(LEFT), LEFT ONLY);
-					dLbsUpdate := GROUP(JOIN(dLbsUpdate_temp, Gt, LEFT.y = RIGHT.x, TRANSFORM(Mat.Types.Element,SELF.y := RIGHT.y; SELF := LEFT;), LOOKUP),x, y, LOCAL);
-					dLbsUpdate_changed:= TOPN(dLbsUpdate, 1, value);
+					dLbsUpdate := JOIN(dLbsUpdate_temp, Gt, LEFT.y = RIGHT.x, TRANSFORM(Mat.Types.Element, SELF.x := LEFT.x, SELF.y := RIGHT.y, SELF.value := LEFT.value ));
+					dLbsUpdate_changed:= DEDUP(SORT(dLbsUpdate,x,y,value),x,y);
 					dLbsUpdate_unchanged:= JOIN(dLbsGroupFilter, dLbsUpdate_changed, LEFT.x = RIGHT.x AND LEFT.y = RIGHT.y, LEFT ONLY);
-					dLbsNew := dLbsUpdate_unchanged + dLbsUpdate_changed;	
-				
+					dLbsNew := dLbsUpdate_unchanged + dLbsUpdate_changed;					
 					//Distribute()
 				  //join LOCAL
 					//lookup , ALL in JOIN(, RIGHT ONE,TRANSFORM,)
@@ -701,7 +707,7 @@ EXPORT loopfilter := MODULE
 		
 		// The number of iterations upon which convergence was reached is simply
     // one less than the number of values in any of the dIterations rows
-    EXPORT UNSIGNED Convergence:= dIterationResults[1].iter + 1;
+    EXPORT UNSIGNED Convergence:= dIterationResults[1].iter;
 		
 		// Specific-instance exports for the SHARED attributes at the top of
     // the KMeans module (with d assumed to be the iterated results). 
