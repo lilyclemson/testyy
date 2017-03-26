@@ -582,7 +582,7 @@ EXPORT loopfilter := MODULE
 		
 		//****		//LowerBound
 		dDistancesSub := JOIN(dDistances, dUpperBound, LEFT.x = RIGHT.x AND LEFT.y = RIGHT.y,LEFT ONLY);// dUpperBound will be moved to dDistances: redistribue btw nodes
-        dGroupDistancesSub := GROUP(JOIN(dDistancesSub, Gt, LEFT.y = RIGHT.x, TRANSFORM(Mat.Types.Element,SELF.y := RIGHT.y, SELF := LEFT), LOOKUP),x, y, LOCAL);		
+        dGroupDistancesSub := GROUP(JOIN(dDistancesSub, Gt, LEFT.y = RIGHT.x, TRANSFORM(Mat.Types.Element,SELF.y := RIGHT.y, SELF := LEFT), LOOKUP),x, y);		
 		dLowerBound := TOPN(dGroupDistancesSub,1, value);	
 
 		//******************END of Initialize the upper bound and lower bounds (lbs) of each data point******************

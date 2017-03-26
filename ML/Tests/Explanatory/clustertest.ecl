@@ -146,9 +146,10 @@ ML.ToField(dDocumentMatrix,dDocuments);
 ML.ToField(dCentroidMatrix,dCentroids);
 
                                                      
-// KMeans:=ML.Cluster_GF_review.YinyangKMeans(dDocuments,dCentroids,30,.3);  // Set up YYKMeans with a maximum of 30 iterations and .3 as a convergence threshold
- KMeans:=ML.Cluster_GF_t0.KMeans(dDocuments,dCentroids,30,.3);
-//KMeans:=ML.loopfilter.YinyangKMeans(dDocuments,dCentroids,30,.3);
+//// KMeans:=ML.Cluster_GF_review.YinyangKMeans(dDocuments,dCentroids,30,.3);  // Set up YYKMeans with a maximum of 30 iterations and .3 as a convergence threshold
+// KMeans:=ML.Cluster_GF_t0.KMeans(dDocuments,dCentroids,30,.3);
+KMeans:=ML.loopfilter.YinyangKMeans(dDocuments,dCentroids,30,.3);
+//KMeans:=ML.loopfilterold.YinyangKMeans(dDocuments,dCentroids,30,.3);
 //KMeans:=ML.test.YinyangKMeans(dDocuments,dCentroids,30,.3);
 KMeans.Allresults;                                       // The table that contains the results of each iteration
 KMeans.Convergence;
