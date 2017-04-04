@@ -15,7 +15,7 @@ IMPORT excercise.relation20network as network;
 IMPORT excercise.uscensus as uscensus;
 
 lMatrix:={UNSIGNED id;REAL x;REAL y;};
-/*
+
 //DP100
 dDocumentMatrix:=DATASET([
 {1,2.4639,7.8579},
@@ -126,11 +126,11 @@ dCentroidMatrix:=DATASET([
 {3,3,3},
 {4,4,4}
 ],lMatrix);
-*/
+
 
 //iris
- dDocumentMatrix := irisset.input;
- dCentroidMatrix := irisset.input[1..4];
+// dDocumentMatrix := irisset.input;
+// dCentroidMatrix := irisset.input[1..3];
 
 //KEGG
 // dDocumentMatrix := network.input;
@@ -141,17 +141,18 @@ dCentroidMatrix:=DATASET([
 // dCentroidMatrix := uscensus.input[1..4];
 
 
-
 ML.ToField(dDocumentMatrix,dDocuments);
 ML.ToField(dCentroidMatrix,dCentroids);
-
                                                      
-//// KMeans:=ML.Cluster_GF_review.YinyangKMeans(dDocuments,dCentroids,30,.3);  // Set up YYKMeans with a maximum of 30 iterations and .3 as a convergence threshold
-// KMeans:=ML.Cluster_GF_t0.KMeans(dDocuments,dCentroids,30,.3);
-KMeans:=ML.loopfilter.YinyangKMeans(dDocuments,dCentroids,30,.3);
+// KMeans:=ML.Cluster_GF_review.YinyangKMeans(dDocuments,dCentroids,30,.3);  // Set up YYKMeans with a maximum of 30 iterations and .3 as a convergence threshold
+KMeans:=ML.cluster_gf_t1.YinyangKMeans(dDocuments,dCentroids,30,.3);
+//KMeans:=ML.Cluster_GF_t0.KMeans(dDocuments,dCentroids,30,.3);
+//KMeans:=ML.loopfilter.YinyangKMeans(dDocuments,dCentroids,30,.3);
 //KMeans:=ML.loopfilterold.YinyangKMeans(dDocuments,dCentroids,30,.3);
+//KMeans:=ML.topntest.YinyangKMeans(dDocuments,dCentroids,30,.3);
 //KMeans:=ML.test.YinyangKMeans(dDocuments,dCentroids,30,.3);
-KMeans.Allresults;                                       // The table that contains the results of each iteration
-KMeans.Convergence;
-KMeans.Allegiances();
+//KMeans.Allresults; 
+KMeans.Convergence;                                      // The table that contains the results of each iteration
+//KMeans.Convergence;
+//KMeans.Allegiances();
 

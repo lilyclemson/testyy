@@ -1,4 +1,4 @@
-﻿EXPORT relation20network := MODULE
+EXPORT relation20network := MODULE
 
 lData := RECORD
 STRING	Pathway;
@@ -58,7 +58,7 @@ lData1 changeFormat(lData ds, UNSIGNED c) := TRANSFORM
 SELF.Pathway := c;
 SELF := ds;
 END;
-dataTemp := DATASET('~::relation20network.txt' ,lData,  CSV(HEADING(1)));
+dataTemp := DATASET('~::keggundirected.txt' ,lData,  CSV(HEADING(1)));
 EXPORT input := PROJECT(dataTemp,changeFormat(LEFT,COUNTER));
 END;
 

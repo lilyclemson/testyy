@@ -557,10 +557,11 @@ EXPORT loopfilterold := MODULE
     groupDs:=PROJECT(tempDt,TRANSFORM(Types.NumericField,SELF.id:=LEFT.id + k,SELF:=LEFT));
     //run KMeans on centroids	 to get the groups
 		//******* 
-    KmeansDt := KMeans(dCentroid0,groupDs,n,nConverge);
+//    KmeansDt := KMeans(dCentroid0,groupDs,5,nConverge):PERSIST('KmeansDt');
+		KmeansDt := KMeans(dCentroid0,groupDs,5,nConverge);
 		//groups
     //the assignment of each centroid to a group	
-		Gt := TABLE(KmeansDt.Allegiances(), {x,y},y,x);
+	Gt := TABLE(KmeansDt.Allegiances(), {x,y},y,x);
 		
 		//***********************************************END OF Gt*****************************************************
 		
@@ -578,7 +579,7 @@ EXPORT loopfilterold := MODULE
     dPass_ini:=JOIN(dCentroid0,TABLE(dJoined_ini,{id},id,LOCAL),LEFT.id=RIGHT.id,TRANSFORM(LEFT),LEFT ONLY,LOOKUP);
 		dCentroid1 := dJoined_ini + dPass_ini;
 		dDistancesSub := JOIN(dDistances, dUpperBound, LEFT.x = RIGHT.x AND LEFT.y = RIGHT.y,LEFT ONLY);// dUpperBound will be moved to dDistances: redistribue btw nodes
-		;
+		
 		//Use table instead of sort/dedup
     // Filter out the closest distances from all the distances
     dGroupDistancesSub := SORT(JOIN(dDistancesSub, Gt, LEFT.y = RIGHT.x, TRANSFORM(Mat.Types.Element,SELF.y := RIGHT.y, SELF := LEFT)),x, y, value);		
@@ -670,8 +671,8 @@ EXPORT loopfilterold := MODULE
 					dPass:=JOIN(dCentroidIn,TABLE(dJoined,{id},id,LOCAL),LEFT.id=RIGHT.id,TRANSFORM(LEFT),LEFT ONLY,LOOKUP);
 					dCentroidOut := dPass + dJoined;  
 					
-          bConverged:=IF(c=1,FALSE, MAX(dDeltaC,value)<=nConverge OR COUNT(dGroupFilter)=0 OR COUNT(dUbUpdate_changed) =0);
-					
+          
+		 bConverged:=IF(c=1,FALSE, MAX(dDeltaC,value)<=nConverge OR COUNT(dGroupFilter)=0 OR COUNT(dUbUpdate_changed) =0);			
 					//Add the new values to the end of each values set.
 					newCsTemp := JOIN(dCentroidsIn, dCentroidOut, LEFT.id = RIGHT.id AND LEFT.number=RIGHT.number,TRANSFORM(lIterations,SELF.values:=LEFT.values+[RIGHT.value];SELF:=LEFT;));
 					dCentroidsOut := PROJECT(newCsTemp, TRANSFORM(lInput,SELF.id := 1;SELF.values:=LEFT.values;SELF.y := LEFT.number; SELF.x:=LEFT.id; SELF.converge := bConverged; SELF.iter := c;));					
@@ -685,8 +686,9 @@ EXPORT loopfilterold := MODULE
 					//or no data points move to new cluster, then output the inputset and stop iteration.
 					//Or output the output and conitnue to next iteration
 					
-					
-					RETURN IF( bConverged, d, dOutput); //LOOP filter
+					action := PARALLEL(OUTPUT(dCentroidOut,NAMED('dCentroidOut')));
+//					RETURN IF( bConverged, d, dOutput); //LOOP filter
+					RETURN WHEN(dOutput, action);
 					//************************************End of Iterations*************************************************
 				
 		END;

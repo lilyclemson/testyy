@@ -47,7 +47,7 @@ EXPORT Cluster := MODULE
 		//         A leading W implies a 'wide' version and is probably simple, unrestricted and painful
 		//         No leading letter implies our 'best shot' at the 'correct' result
     EXPORT Default := MODULE,VIRTUAL
-		  EXPORT UNSIGNED1 PModel := c_model.dense; // The process model for this distance metric
+		    EXPORT UNSIGNED1 PModel := c_model.dense; // The process model for this distance metric
 			EXPORT REAL8 EV1(DATASET(Types.NumericField) d) := 0; // An 'exotic' value which will be passed in at Comb time
 			EXPORT REAL8 EV2(DATASET(Types.NumericField) d) := 0; // An 'exotic' value which will be passed in at Comb time
 			EXPORT BOOLEAN JoinFilter(Types.t_FieldReal x,Types.t_FieldReal y,REAL8 ex1) := x<>0 OR y<>0; // If false - join value will not be computed

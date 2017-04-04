@@ -71,7 +71,7 @@ UNSIGNED iYearwrk ;
 UNSIGNED dYrsserv;
 END;
 
-dataTemp := DATASET('~lily::uscensus1990.txt' ,lData,  CSV(HEADING(1)));
+dataTemp := DATASET('~::uscensus1990.txt' ,lData,  CSV(HEADING(1)));
 EXPORT input := dataTemp;
 END;
 

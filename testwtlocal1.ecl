@@ -1,4 +1,4 @@
-﻿// IMPORT * FROM $;
+// IMPORT * FROM $;
 // IMPORT Std.Str AS Str;
 IMPORT TS;
 IMPORT ML.Mat;
@@ -16,6 +16,7 @@ lMatrix:={UNSIGNED id;REAL x;REAL y;};
 // dCentroidMatrix := irisset.input[1..4];
 // dDocumentMatrix := uscensus.input;
 // dCentroidMatrix := uscensus.input[1..4];
+
 dDocumentMatrix:=DATASET([
 {1,2.4639,7.8579},
 {2,0.5573,9.4681},
@@ -163,7 +164,7 @@ OUTPUT(dCentroid0,NAMED('Initial_Centroids'));
 K := COUNT(d02)/2;
 //K; 
 //t:= IF(K/10<1, 1, K/10);
-t:=2;
+t:=1;
 //t; 
 
 
