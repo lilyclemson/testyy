@@ -359,20 +359,23 @@ EXPORT Cluster_gf_t0 := MODULE
       // Find any centroids with no document allegiance and pass those through also
 	  dPass:=JOIN(dCentroids,TABLE(dJoined,{id},id,LOCAL),LEFT.id=RIGHT.id,TRANSFORM(LEFT),LEFT ONLY,LOOKUP);
       // Now join to the existing centroid dataset to add the new values to
+      dCentroidnew:= dJoined+dPass;
       // the end of the values set.
-      dAdded:=JOIN(d,dJoined+dPass,LEFT.id=RIGHT.id AND LEFT.number=RIGHT.number,TRANSFORM(lIterations,SELF.values:=LEFT.values+[RIGHT.value];SELF:=RIGHT;),RIGHT OUTER);
+      dAdded:=JOIN(d,dCentroidnew,LEFT.id=RIGHT.id AND LEFT.number=RIGHT.number,TRANSFORM(lIterations,SELF.values:=LEFT.values+[RIGHT.value];SELF:=RIGHT;),RIGHT OUTER);
       // If the centroids have converged, simply pass the input dataset through
       // to the next iteration.  Otherwise perform an iteration.
       action1 := OUTPUT(c, NAMED('IterationNo'));
       action2 := OUTPUT(bConverged,NAMED('bConverged'));
       action3 := OUTPUT(dCentroids,NAMED('dCentroids'));
       action4 := OUTPUT(dDistances, NAMED('dDistances'));
-      action5 := OUTPUT(dClosest, NAMED('dClosest'));
+      action5 := OUTPUT(SORT(dClosest,x), NAMED('dClosest'));
       action6 := OUTPUT(dClusterCounts, NAMED('dClusterCounts'));
       action7 := PARALLEL(action1, action2, action3, action4, action5, action6);
-      action8 := PARALLEL(OUTPUT(c, NAMED('IterationNo')),OUTPUT(dCentroids,NAMED('dCentroids')));
+      
+      action9 := OUTPUT(SORT(dCentroidnew,id), NAMED('dCentroidnew'));
+      action8 := PARALLEL(action5, action9);
 	  RETURN IF( bConverged, d, dAdded); //LOOP filter
-//	  RETURN WHEN(dAdded, action7);
+//	  RETURN WHEN(dAdded, action8);
 //	RETURN dAdded;
     END;
     dIterationResults:=LOOP(d02Prep,n,fIterate(ROWS(LEFT),COUNTER));
@@ -393,7 +396,7 @@ EXPORT Cluster_gf_t0 := MODULE
 
     // Quick re-directs to the Closest attribute specific to this module's
     // parameters
-    EXPORT Allegiances(UNSIGNED n=Convergence):=PROJECT(Closest(Distances(d01,PROJECT(Result(n),TRANSFORM(RECORDOF(Result(n)),SELF.id:=LEFT.id+iOffset;SELF:=LEFT;)),fDist)),TRANSFORM(RECORDOF(Mat.Types.Element),SELF.y:=LEFT.y-iOffset;SELF:=LEFT;));
+    EXPORT Allegiances(UNSIGNED n=Convergence):=SORT(PROJECT(Closest(Distances(d01,PROJECT(Result(n),TRANSFORM(RECORDOF(Result(n)),SELF.id:=LEFT.id+iOffset;SELF:=LEFT;)),fDist)),TRANSFORM(RECORDOF(Mat.Types.Element),SELF.y:=LEFT.y-iOffset;SELF:=LEFT;)),x);
     EXPORT UNSIGNED Allegiance(UNSIGNED id,UNSIGNED n=Convergence):=Allegiances(n)(x=id)[1].y;
   END;
 
@@ -541,7 +544,7 @@ EXPORT Cluster_gf_t0 := MODULE
 		dDistances := Distances(d01,dCentroid0); // All the distances from each data points to each centroids
 //		dUpperBound := Closest(dDistances);// Filter out the distance from a data point to its best centroid.
         groupclose := GROUP(SORT(dDistances, x), x);
-		OUTPUT(groupclose, NAMED('groupclose'));
+		action0 := OUTPUT(groupclose, NAMED('groupclose'));
 		dUpperBound :=TOPN( groupclose,1, value);
 		
 		//Initialize the lower bounds (lbs) of each data point
@@ -684,7 +687,8 @@ dCentroid1 := dJoined_ini + dPass_ini;
 			dLbsOut := JOIN(iLbs, lbs1, LEFT.x = RIGHT.x AND LEFT.y = RIGHT.y ,TRANSFORM(lInput,SELF.id := 3;SELF.values:=LEFT.values+[RIGHT.value];SELF.converge := bConverged;SELF.iter := c; SELF:=LEFT;));
 			//Combine all updated sub-datasets as the output dataset for next iteration
 			dOutput := dCentroidsOut+ dUbOut + dLbsOut;
-			RETURN WHEN(dOutput, action);
+//			RETURN WHEN(dOutput, action);
+RETURN dOutput;
 		END;
 		dIterationResults :=LOOP(dInput,LEFT.converge = False AND COUNTER <= n - 1,fIterate(ROWS(LEFT),COUNTER));
 		dResults := TABLE(dIterationResults(id=1), {x, TYPEOF(Types.NumericField.number) number := y, values});

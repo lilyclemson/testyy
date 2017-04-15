@@ -138,7 +138,7 @@ KMeans.DistanceDelta(0);                                 // The total straight-l
 KMeans.DistanceDelta();                                  // The distance travelled by each centroid during the last iteration.
 
 
-/*
+
 YinyangKMeans:=ML.Cluster.YinyangKMeans(dDocuments,dCentroids,30,.3); 		// Set up YinYangKMeans with a maximum of 30 iterations and .3 as a convergence threshold
 YinyangKMeans.Allresults;                                       					// The table that contains the results of each iteration
 YinyangKMeans.Convergence;                                      					// The number of iterations it took to converge
@@ -149,4 +149,3 @@ YinyangKMeans.DistanceDelta(5,15);                              					// The stra
 YinyangKMeans.DistanceDelta(0);                                 					// The total straight-line distance each centroid travelled 
 YinyangKMeans.DistanceDelta();                                  					// The distance travelled by each centroid during the last iteration.
 YinyangKMeans.Allegiances();
-*/

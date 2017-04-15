@@ -338,64 +338,75 @@ d := input0;
 c:=1;
 
 //********************************************start iterations*************************************************
+	    OUTPUT(c, NAMED('IterationNo')); 
+		dAddedx1 := dAdded1;
 			
-			dAddedx1 := PROJECT(d(id = 1), TRANSFORM(lIterations , SELF.id := LEFT. x; SELF.number:= LEFT.y; SELF.values := LEFT.values;));
-			iUb := TABLE(d(id = 2), {x;y;values;});
-			iLbs := TABLE(d(id = 3), {x;y;values;});
-
-			ub0 := PROJECT(d(id = 2), TRANSFORM(Mat.Types.Element, SELF.value := LEFT.values[c]; SELF := LEFT;));
-			OUTPUT(ub0, NAMED('ub0'));
-			lbs0 := PROJECT(d(id = 3), TRANSFORM(Mat.Types.Element, SELF.value := LEFT.values[c]; SELF := LEFT;));
-			OUTPUT(lbs0, NAMED('lbs0'));
-
-			
-			//*********add lb0 which is the min(lbs0) of each data point
-			//**
-
+			dCentroidIn := dCentroid1;
+			ub0 := ub0_ini;
+			lbs0 := lbs0_ini;
+           
 			//calculate the deltaC
 			deltac1 := dDistanceDelta(c,c-1,dAddedx1);
 			OUTPUT(deltac1,NAMED('deltac1'));
-			
-			
+		
 			//get deltaG1
 			//group deltacg by Gt: first JOIN(deltaC with Gt) then group by Gt
 			deltaG1 := MAX(deltac1, value);
 			OUTPUT(deltaG1,NAMED('deltaG1')); 
-			
-     
-          
+       
 			//update ub0 and lbs0
 			ub1_temp := JOIN(ub0, deltac1, LEFT.y = RIGHT.id, TRANSFORM(Mat.Types.Element, SElF.value := LEFT.value + RIGHT.value; SELF := LEFT;));
 			OUTPUT(ub1_temp, NAMED('ub1_temp'));
-			lbs1_temp := PROJECT(lbs0,TRANSFORM(Mat.Types.Element, SELF.value := ABS(LEFT.value - deltaG1); SELF := LEFT));
+			lbs1_temp := SORT(PROJECT(lbs0,TRANSFORM(Mat.Types.Element, SELF.value := ABS(LEFT.value - deltaG1); SELF := LEFT)),x);
 			OUTPUT(lbs1_temp, NAMED('lbs1_temp'));
 			
-            dMapa1 := PROJECT(ub0, TRANSFORM(ClusterPair, SELF.id := LEFT.x; SELF.clusterid := LEFT.y; SELF.number := 0; SELF.value01 := LEFT.value; SELF.value02 := 0; SELF.value03 := 0;));		
-			ub1_changed_temp := MappedDistances(d01,dCentroid1,fDist,dMapa1);	
-			OUTPUT(ub1_changed_temp);			
+//            dMapa1 := PROJECT(ub0, TRANSFORM(ClusterPair, SELF.id := LEFT.x; SELF.clusterid := LEFT.y; SELF.number := 0; SELF.value01 := LEFT.value; SELF.value02 := 0; SELF.value03 := 0;));		
+//			ub1_changed_temp := MappedDistances(d01,dCentroidIn,fDist,dMapa1);	
+//			action8 :=OUTPUT(ub1_changed_temp);			
 						
 			// groupfilter1	
             groupFilter1 := JOIN(lbs1_temp, ub1_temp,LEFT.x = RIGHT.x AND (LEFT.value < RIGHT.value), TRANSFORM(Mat.Types.Element, SELF := RIGHT));	
-            OUTPUT(groupFilter1, NAMED('groupFilter1'));		
+            OUTPUT(groupFilter1, NAMED('groupFilter1'));	
+            
+//            dMapa1 := PROJECT(groupFilter1, TRANSFORM(ClusterPair, SELF.id := LEFT.x; SELF.clusterid := LEFT.y; SELF.number := 0; SELF.value01 := LEFT.value; SELF.value02 := 0; SELF.value03 := 0;));		
+//			ub1_changed_temp := MappedDistances(d01,dCentroidIn,fDist,dMapa1);	
+//			action8 :=OUTPUT(ub1_changed_temp);		
 			
 			changeSet1 := JOIN(d01, groupFilter1, LEFT.id = RIGHT.x, TRANSFORM(LEFT));		
-            OUTPUT(changeSet1, NAMED('changeSet1'));			
-            
-			dMappedDistancesb1 := ML.Cluster.Distances(changeSet1,dCentroid1,fDist);	
-			OUTPUT(dMappedDistancesb1, NAMED('dMappedDistancesb1'));	
-					
+            OUTPUT(changeSet1, NAMED('changeSet1'));		
+            	
+			dMappedDistancesb1 := ML.Cluster.Distances(changeSet1,dCentroidIn,fDist);	
+			OUTPUT(CHOOSEN(dMappedDistancesb1,1000), ALL,NAMED('dMappedDistancesb1'));	
+				
+				//old best c all    groupfilter
+			ub1_changed_old := JOIN(dMappedDistancesb1, groupFilter1, LEFT.x = RIGHT.x AND LEFT.y = RIGHT.y, TRANSFORM(LEFT));
+			OUTPUT(ub1_changed_old, NAMED('ub1_changed_old'));
+				//new best c all	groupfilter
 			ub1_changed_final := ML.Cluster.Closest(dMappedDistancesb1);
 			OUTPUT(ub1_changed_final, NAMED('ub1_changed_final'));
 			
-			ub1_changed := JOIN(ub1_changed_temp, ub1_changed_final, LEFT.x = RIGHT.x AND LEFT.value > RIGHT.value, TRANSFORM(Mat.Types.Element, SELF := RIGHT;));
+//			ub1_changed := JOIN(ub1_changed_temp, ub1_changed_final, LEFT.x = RIGHT.x AND LEFT.value > RIGHT.value, TRANSFORM(Mat.Types.Element, SELF := RIGHT;));
+//			action13 :=OUTPUT(ub1_changed, NAMED('ub1_changed'));
+
+			ub1_changed:= JOIN(ub1_changed_old, ub1_changed_final, LEFT.x = RIGHT.x AND LEFT.value > RIGHT.value, TRANSFORM(Mat.Types.Element, SELF := RIGHT;));
 			OUTPUT(ub1_changed, NAMED('ub1_changed'));
 			
-			ub1_unchanged := JOIN(ub1_changed_temp, ub1_changed, LEFT.x = RIGHT.x, TRANSFORM(LEFT),LEFT ONLY);
-			OUTPUT(ub1_unchanged, NAMED('ub1_unchanged'));
+
+//			ub1_unchanged := JOIN(ub1_changed_temp, ub1_changed, LEFT.x = RIGHT.x, TRANSFORM(LEFT),LEFT ONLY);
+//			action14 :=OUTPUT(ub1_unchanged, NAMED('ub1_unchanged'));
+			
+			ub1_unchanged_temp := JOIN(ub1_temp, ub1_changed, LEFT.x = RIGHT.x, TRANSFORM(LEFT),LEFT ONLY);
+			OUTPUT(ub1_unchanged_temp, NAMED('ub1_unchanged_temp'));
+			
+			dMapa1 := PROJECT(ub1_unchanged_temp, TRANSFORM(ClusterPair, SELF.id := LEFT.x; SELF.clusterid := LEFT.y; SELF.number := 0; SELF.value01 := LEFT.value; SELF.value02 := 0; SELF.value03 := 0;));		
+			ub1_unchanged:= MappedDistances(d01,dCentroidIn,fDist,dMapa1);	
+			OUTPUT(ub1_unchanged);	
 			
 			ub1 := SORT(ub1_changed + ub1_unchanged, x, y, value);
-            OUTPUT(ub1, NAMED('ub1'));							
+            OUTPUT(ub1, NAMED('ub1'));	
             
+			//updating lb
+		            					
 			lbs1_changed_temp := JOIN(dMappedDistancesb1, ub1_changed, LEFT.x = RIGHT.x, TRANSFORM(Mat.Types.Element, SELF := LEFT;));
 			OUTPUT(lbs1_changed_temp, NAMED('lbs1_changed_temp'));
 			
@@ -407,15 +418,17 @@ c:=1;
 			
 			lbs1_changed := TOPN( lbs1_changed_temp2,1, value);
 			OUTPUT(lbs1_changed, NAMED('lbs1_changed'));
+
+//			lbs1_changed := SecondClosest(ub1_changed, lbs1_changed_temp);
 			
 			lbs1_unchanged:= JOIN(lbs1_temp, lbs1_changed, LEFT.x = RIGHT.x, LEFT ONLY);
             OUTPUT(lbs1_unchanged, NAMED('lbs1_unchanged'));
-            
-            lbs1 := SORT(lbs1_unchanged + lbs1_changed, x);			
-			OUTPUT(lbs1, NAMED('lbs1'));
-			
-            dClusterCounts1:=TABLE(ub1,{y;UNSIGNED c:=COUNT(GROUP);},y,FEW);
-			OUTPUT(dClusterCounts1, NAMED('dClusterCounts1'));
+//           
+//           lbs1:= JOIN(lbs1_temp, lbs1_changed,LEFT.x = RIGHT.x, TRANSFORM(Mat.Types.Element, SELF.value := IF( RIGHT.value = 0,LEFT.value, RIGHT.value), SELF := LEFT;), LEFT OUTER );
+		   lbs1 :=SORT( lbs1_unchanged + lbs1_changed, x);			
+		   OUTPUT(lbs1, NAMED('lbs1'));
+           dClusterCounts1:=TABLE(ub1,{y;UNSIGNED c:=COUNT(GROUP);},y,FEW);
+		   OUTPUT(dClusterCounts1, NAMED('dClusterCounts1'));
 			
 	        // Join closest to the document set and replace the id with the centriod id
 	        dClustered1:=SORT(DISTRIBUTE(JOIN(d01,ub1,LEFT.id=RIGHT.x,TRANSFORM(Types.NumericField,SELF.id:=RIGHT.y;SELF:=LEFT;),HASH),id),RECORD,LOCAL);
@@ -424,66 +437,85 @@ c:=1;
 	        // Join to cluster counts to calculate the new average on each axis
 	        dJoined1:=JOIN(dRolled1,dClusterCounts1,LEFT.id=RIGHT.y,TRANSFORM(Types.NumericField,SELF.value:=LEFT.value/RIGHT.c;SELF:=LEFT;),LOOKUP);
 	        // Find any centroids with no document allegiance and pass those through also
-		    dPass1:=JOIN(dCentroid1,TABLE(dJoined1,{id},id,LOCAL),LEFT.id=RIGHT.id,TRANSFORM(LEFT),LEFT ONLY,LOOKUP);
+		    dPass1:=JOIN(dCentroidIn,TABLE(dJoined1,{id},id,LOCAL),LEFT.id=RIGHT.id,TRANSFORM(LEFT),LEFT ONLY,LOOKUP);
 			dCentroid2 := SORT(dPass1 + dJoined1, id);
-            OUTPUT(dCentroid2, NAMED('dCentroid2'));      
-	
-//itr2
+            OUTPUT(dCentroid2, NAMED('dCentroid2'));  
+   
+//itr 2
 
-c2:=2;			
-			dAddedx2 := JOIN(dAddedx1, dCentroid2, LEFT.id = RIGHT.id AND LEFT.number=RIGHT.number,TRANSFORM(lIterations,SELF.values:=LEFT.values+[RIGHT.value];SELF:=LEFT;));
+c2:=2;
+
+//********************************************start iterations*************************************************
+	    OUTPUT(c2); 
+		dAddedx2 := JOIN(dAddedx1, dCentroid2, LEFT.id = RIGHT.id AND LEFT.number=RIGHT.number,TRANSFORM(lIterations,SELF.values:=LEFT.values+[RIGHT.value];SELF:=LEFT;));
+		
 			//calculate the deltaC
-			deltac2 := dDistanceDelta(c2 ,c2-1,dAddedx2);
-			OUTPUT(deltac2,NAMED('deltac2'));	
-			
-			bConverged2 := IF(MAX(deltac2,value)<=nConverge,TRUE,FALSE);
-			OUTPUT(bConverged2, NAMED('iteration2_converge'));
-			
+			deltac2 := dDistanceDelta(c2,c2-1,dAddedx2);
+			OUTPUT(deltac2,NAMED('deltac2'));
+		
 			//get deltaG2
 			//group deltacg by Gt: first JOIN(deltaC with Gt) then group by Gt
 			deltaG2 := MAX(deltac2, value);
 			OUTPUT(deltaG2,NAMED('deltaG2')); 
-         
+       
 			//update ub0 and lbs0
 			ub2_temp := JOIN(ub1, deltac2, LEFT.y = RIGHT.id, TRANSFORM(Mat.Types.Element, SElF.value := LEFT.value + RIGHT.value; SELF := LEFT;));
 			OUTPUT(ub2_temp, NAMED('ub2_temp'));
 			lbs2_temp := PROJECT(lbs1,TRANSFORM(Mat.Types.Element, SELF.value := ABS(LEFT.value - deltaG2); SELF := LEFT));
 			OUTPUT(lbs2_temp, NAMED('lbs2_temp'));
-			dMapa2 := PROJECT(ub1, TRANSFORM(ClusterPair, SELF.id := LEFT.x; SELF.clusterid := LEFT.y; SELF.number := 0; SELF.value01 := LEFT.value; SELF.value02 := 0; SELF.value03 := 0;));		
-			ub2_changed_temp := MappedDistances(d01,dCentroid2,fDist,dMapa2);	
-			OUTPUT(ub2_changed_temp);	
+		
 						
 			// groupfilter2	
             groupFilter2 := JOIN(lbs2_temp, ub2_temp,LEFT.x = RIGHT.x AND (LEFT.value < RIGHT.value), TRANSFORM(Mat.Types.Element, SELF := RIGHT));	
             OUTPUT(groupFilter2, NAMED('groupFilter2'));	
-            
+
+			
 			changeSet2 := JOIN(d01, groupFilter2, LEFT.id = RIGHT.x, TRANSFORM(LEFT));		
-            OUTPUT(changeSet2, NAMED('changeSet2'));			
+            OUTPUT(changeSet2, NAMED('changeSet2'));		
+            	
 			dMappedDistancesb2 := ML.Cluster.Distances(changeSet2,dCentroid2,fDist);	
-			OUTPUT(dMappedDistancesb2, NAMED('dMappedDistancesb2'));			
+			OUTPUT(dMappedDistancesb2, NAMED('dMappedDistancesb2'));	
+				
+				//old best c all    groupfilter
+			ub2_changed_old := JOIN(dMappedDistancesb2, groupFilter2, LEFT.x = RIGHT.x AND LEFT.y = RIGHT.y, TRANSFORM(LEFT));
+			OUTPUT(ub2_changed_old, NAMED('ub2_changed_old'));
+				//new best c all	groupfilter
 			ub2_changed_final := ML.Cluster.Closest(dMappedDistancesb2);
 			OUTPUT(ub2_changed_final, NAMED('ub2_changed_final'));
-			ub2_changed := JOIN(ub2_changed_temp, ub2_changed_final, LEFT.x = RIGHT.x AND LEFT.value > RIGHT.value, TRANSFORM(Mat.Types.Element, SELF := RIGHT;));
+			
+			ub2_changed:= JOIN(ub2_changed_old, ub2_changed_final, LEFT.x = RIGHT.x AND LEFT.value > RIGHT.value, TRANSFORM(Mat.Types.Element, SELF := RIGHT;));
 			OUTPUT(ub2_changed, NAMED('ub2_changed'));
-			ub2_unchanged := JOIN(ub2_changed_temp, ub2_changed, LEFT.x = RIGHT.x, TRANSFORM(LEFT),LEFT ONLY);
-			OUTPUT(ub2_unchanged, NAMED('ub2_unchanged'));
+					
+			ub2_unchanged_temp := JOIN(ub2_temp, ub2_changed, LEFT.x = RIGHT.x, TRANSFORM(LEFT),LEFT ONLY);
+			OUTPUT(ub2_unchanged_temp, NAMED('ub2_unchanged_temp'));
+			
+			dMapa2 := PROJECT(ub2_unchanged_temp, TRANSFORM(ClusterPair, SELF.id := LEFT.x; SELF.clusterid := LEFT.y; SELF.number := 0; SELF.value01 := LEFT.value; SELF.value02 := 0; SELF.value03 := 0;));		
+			ub2_unchanged:= MappedDistances(d01,dCentroid2,fDist,dMapa2);	
+			OUTPUT(ub2_unchanged);	
+			
 			ub2 := SORT(ub2_changed + ub2_unchanged, x, y, value);
-            OUTPUT(ub2, NAMED('ub2'));							
+            OUTPUT(ub2, NAMED('ub2'));	
+            
+			//updating lb
+		            					
 			lbs2_changed_temp := JOIN(dMappedDistancesb2, ub2_changed, LEFT.x = RIGHT.x, TRANSFORM(Mat.Types.Element, SELF := LEFT;));
 			OUTPUT(lbs2_changed_temp, NAMED('lbs2_changed_temp'));
+			
 			lbs2_changed_temp1 := JOIN(lbs2_changed_temp, ub2_changed, LEFT.x = RIGHT.x AND LEFT.y = RIGHT.y, TRANSFORM(LEFT), LEFT ONLY);
 			OUTPUT(lbs2_changed_temp1, NAMED('lbs2_changed_temp1'));
+			
 			lbs2_changed_temp2:= GROUP(SORT(lbs2_changed_temp1, x), x);
 			OUTPUT(lbs2_changed_temp2, NAMED('lbs2_changed_temp2'));
+			
 			lbs2_changed := TOPN( lbs2_changed_temp2,1, value);
-			OUTPUT(lbs2_changed, NAMED('lbs2_changed'));
+			OUTPUT(lbs2_changed, NAMED('lbs2_changed'));			
 			lbs2_unchanged:= JOIN(lbs2_temp, lbs2_changed, LEFT.x = RIGHT.x, LEFT ONLY);
             OUTPUT(lbs2_unchanged, NAMED('lbs2_unchanged'));
-            lbs2 := SORT(lbs2_unchanged + lbs2_changed,x);			
-			OUTPUT(lbs2, NAMED('lbs2'));
+		   lbs2 := SORT(lbs2_unchanged + lbs2_changed,x);			
+		   OUTPUT(lbs2, NAMED('lbs2'));
+           dClusterCounts2:=TABLE(ub2,{y;UNSIGNED c:=COUNT(GROUP);},y,FEW);
+		   OUTPUT(dClusterCounts2, NAMED('dClusterCounts2'));
 			
-            dClusterCounts2:=TABLE(ub2,{y;UNSIGNED c:=COUNT(GROUP);},y,FEW);
-			OUTPUT(dClusterCounts2, NAMED('dClusterCounts2'));
 	        // Join closest to the document set and replace the id with the centriod id
 	        dClustered2:=SORT(DISTRIBUTE(JOIN(d01,ub2,LEFT.id=RIGHT.x,TRANSFORM(Types.NumericField,SELF.id:=RIGHT.y;SELF:=LEFT;),HASH),id),RECORD,LOCAL);
 	        // Now roll up on centroid ID, summing up the values for each axis
@@ -491,62 +523,80 @@ c2:=2;
 	        // Join to cluster counts to calculate the new average on each axis
 	        dJoined2:=JOIN(dRolled2,dClusterCounts2,LEFT.id=RIGHT.y,TRANSFORM(Types.NumericField,SELF.value:=LEFT.value/RIGHT.c;SELF:=LEFT;),LOOKUP);
 	        // Find any centroids with no document allegiance and pass those through also
-		    dPass2:=JOIN(dCentroid2,TABLE(dJoined2,{id},id,LOCAL),LEFT.id=RIGHT.id,TRANSFORM(LEFT),LEFT ONLY,LOOKUP);
+		    dPass2:=JOIN(dCentroidIn,TABLE(dJoined2,{id},id,LOCAL),LEFT.id=RIGHT.id,TRANSFORM(LEFT),LEFT ONLY,LOOKUP);
 			dCentroid3 := SORT(dPass2 + dJoined2, id);
-            OUTPUT(dCentroid3, NAMED('dCentroid3'));      
+            OUTPUT(dCentroid3, NAMED('dCentroid3'));  
+            
+//itr3
 
-c3:=3;			
-			dAddedx3 := JOIN(dAddedx2, dCentroid3, LEFT.id = RIGHT.id AND LEFT.number=RIGHT.number,TRANSFORM(lIterations,SELF.values:=LEFT.values+[RIGHT.value];SELF:=LEFT;));
+c3:=3;
+
+//********************************************start iterations*************************************************
+	    OUTPUT(c3); 
+		dAddedx3 := JOIN(dAddedx2, dCentroid3, LEFT.id = RIGHT.id AND LEFT.number=RIGHT.number,TRANSFORM(lIterations,SELF.values:=LEFT.values+[RIGHT.value];SELF:=LEFT;));
+		
 			//calculate the deltaC
-			deltac3 := dDistanceDelta(c3 ,c3-1,dAddedx3);
-			OUTPUT(deltac3,NAMED('deltac3'));	
-					
-			//get deltaG3
-			//group deltacg by Gt: first JOIN(deltaC with Gt) then group by Gt
+			deltac3 := dDistanceDelta(c3,c3-1,dAddedx3);
+			OUTPUT(deltac3,NAMED('deltac3'));
+
 			deltaG3 := MAX(deltac3, value);
 			OUTPUT(deltaG3,NAMED('deltaG3')); 
-         
-			//update ub0 and lbs0
+
 			ub3_temp := JOIN(ub2, deltac3, LEFT.y = RIGHT.id, TRANSFORM(Mat.Types.Element, SElF.value := LEFT.value + RIGHT.value; SELF := LEFT;));
 			OUTPUT(ub3_temp, NAMED('ub3_temp'));
-			lbs3_temp := PROJECT(lbs2,TRANSFORM(Mat.Types.Element, SELF.value := ABS(LEFT.value - deltaG3); SELF := LEFT));
+			lbs3_temp := SORT(PROJECT(lbs2,TRANSFORM(Mat.Types.Element, SELF.value := ABS(LEFT.value - deltaG3); SELF := LEFT)),x);
 			OUTPUT(lbs3_temp, NAMED('lbs3_temp'));
-			
-			dMapa3 := PROJECT(ub2, TRANSFORM(ClusterPair, SELF.id := LEFT.x; SELF.clusterid := LEFT.y; SELF.number := 0; SELF.value01 := LEFT.value; SELF.value02 := 0; SELF.value03 := 0;));		
-			ub3_changed_temp := MappedDistances(d01,dCentroid3,fDist,dMapa3);	
-			OUTPUT(ub3_changed_temp);	
-						
-			// groupfilter3	
+
             groupFilter3 := JOIN(lbs3_temp, ub3_temp,LEFT.x = RIGHT.x AND (LEFT.value < RIGHT.value), TRANSFORM(Mat.Types.Element, SELF := RIGHT));	
             OUTPUT(groupFilter3, NAMED('groupFilter3'));	
-            
+
+			
 			changeSet3 := JOIN(d01, groupFilter3, LEFT.id = RIGHT.x, TRANSFORM(LEFT));		
-            OUTPUT(changeSet3, NAMED('changeSet3'));			
+            OUTPUT(changeSet3, NAMED('changeSet3'));		
+            	
 			dMappedDistancesb3 := ML.Cluster.Distances(changeSet3,dCentroid3,fDist);	
-			OUTPUT(dMappedDistancesb3, NAMED('dMappedDistancesb3'));			
+			OUTPUT(dMappedDistancesb3, NAMED('dMappedDistancesb3'));	
+				
+				//old best c all    groupfilter
+			ub3_changed_old := JOIN(dMappedDistancesb3, groupFilter3, LEFT.x = RIGHT.x AND LEFT.y = RIGHT.y, TRANSFORM(LEFT));
+			OUTPUT(ub3_changed_old, NAMED('ub3_changed_old'));
+				//new best c all	groupfilter
 			ub3_changed_final := ML.Cluster.Closest(dMappedDistancesb3);
 			OUTPUT(ub3_changed_final, NAMED('ub3_changed_final'));
-			ub3_changed := JOIN(ub3_changed_temp, ub3_changed_final, LEFT.x = RIGHT.x AND LEFT.value > RIGHT.value, TRANSFORM(Mat.Types.Element, SELF := RIGHT;));
+			
+			ub3_changed:= JOIN(ub3_changed_old, ub3_changed_final, LEFT.x = RIGHT.x AND LEFT.value > RIGHT.value, TRANSFORM(Mat.Types.Element, SELF := RIGHT;));
 			OUTPUT(ub3_changed, NAMED('ub3_changed'));
-			ub3_unchanged := JOIN(ub3_changed_temp, ub3_changed, LEFT.x = RIGHT.x, TRANSFORM(LEFT),LEFT ONLY);
-			OUTPUT(ub3_unchanged, NAMED('ub3_unchanged'));
+					
+			ub3_unchanged_temp := JOIN(ub3_temp, ub3_changed, LEFT.x = RIGHT.x, TRANSFORM(LEFT),LEFT ONLY);
+			OUTPUT(ub3_unchanged_temp, NAMED('ub3_unchanged_temp'));
+			
+			dMapa3 := PROJECT(ub3_unchanged_temp, TRANSFORM(ClusterPair, SELF.id := LEFT.x; SELF.clusterid := LEFT.y; SELF.number := 0; SELF.value01 := LEFT.value; SELF.value02 := 0; SELF.value03 := 0;));		
+			ub3_unchanged:= MappedDistances(d01,dCentroid3,fDist,dMapa3);	
+			OUTPUT(ub3_unchanged);	
+			
 			ub3 := SORT(ub3_changed + ub3_unchanged, x, y, value);
-            OUTPUT(ub3, NAMED('ub3'));							
+            OUTPUT(ub3, NAMED('ub3'));	
+            
+			//updating lb
+		            					
 			lbs3_changed_temp := JOIN(dMappedDistancesb3, ub3_changed, LEFT.x = RIGHT.x, TRANSFORM(Mat.Types.Element, SELF := LEFT;));
 			OUTPUT(lbs3_changed_temp, NAMED('lbs3_changed_temp'));
+			
 			lbs3_changed_temp1 := JOIN(lbs3_changed_temp, ub3_changed, LEFT.x = RIGHT.x AND LEFT.y = RIGHT.y, TRANSFORM(LEFT), LEFT ONLY);
 			OUTPUT(lbs3_changed_temp1, NAMED('lbs3_changed_temp1'));
+			
 			lbs3_changed_temp2:= GROUP(SORT(lbs3_changed_temp1, x), x);
 			OUTPUT(lbs3_changed_temp2, NAMED('lbs3_changed_temp2'));
+			
 			lbs3_changed := TOPN( lbs3_changed_temp2,1, value);
-			OUTPUT(lbs3_changed, NAMED('lbs3_changed'));
+			OUTPUT(lbs3_changed, NAMED('lbs3_changed'));			
 			lbs3_unchanged:= JOIN(lbs3_temp, lbs3_changed, LEFT.x = RIGHT.x, LEFT ONLY);
             OUTPUT(lbs3_unchanged, NAMED('lbs3_unchanged'));
-            lbs3 := SORT(lbs3_unchanged + lbs3_changed,x);			
-			OUTPUT(lbs3, NAMED('lbs3'));
+		   lbs3 := SORT(lbs3_unchanged + lbs3_changed, x);			
+		   OUTPUT(lbs3, NAMED('lbs3'));
+           dClusterCounts3:=TABLE(ub3,{y;UNSIGNED c:=COUNT(GROUP);},y,FEW);
+		   OUTPUT(dClusterCounts3, NAMED('dClusterCounts3'));
 			
-            dClusterCounts3:=TABLE(ub3,{y;UNSIGNED c:=COUNT(GROUP);},y,FEW);
-			OUTPUT(dClusterCounts3, NAMED('dClusterCounts3'));
 	        // Join closest to the document set and replace the id with the centriod id
 	        dClustered3:=SORT(DISTRIBUTE(JOIN(d01,ub3,LEFT.id=RIGHT.x,TRANSFORM(Types.NumericField,SELF.id:=RIGHT.y;SELF:=LEFT;),HASH),id),RECORD,LOCAL);
 	        // Now roll up on centroid ID, summing up the values for each axis
@@ -554,66 +604,80 @@ c3:=3;
 	        // Join to cluster counts to calculate the new average on each axis
 	        dJoined3:=JOIN(dRolled3,dClusterCounts3,LEFT.id=RIGHT.y,TRANSFORM(Types.NumericField,SELF.value:=LEFT.value/RIGHT.c;SELF:=LEFT;),LOOKUP);
 	        // Find any centroids with no document allegiance and pass those through also
-		    dPass3:=JOIN(dCentroid3,TABLE(dJoined3,{id},id,LOCAL),LEFT.id=RIGHT.id,TRANSFORM(LEFT),LEFT ONLY,LOOKUP);
+		    dPass3:=JOIN(dCentroidIn,TABLE(dJoined3,{id},id,LOCAL),LEFT.id=RIGHT.id,TRANSFORM(LEFT),LEFT ONLY,LOOKUP);
 			dCentroid4 := SORT(dPass3 + dJoined3, id);
             OUTPUT(dCentroid4, NAMED('dCentroid4'));  
-	            
-c4:=4;		//**	
-			dAddedx4 := JOIN(dAddedx3, dCentroid4, LEFT.id = RIGHT.id AND LEFT.number=RIGHT.number,TRANSFORM(lIterations,SELF.values:=LEFT.values+[RIGHT.value];SELF:=LEFT;));
+
+//itr4
+
+c4:=4;
+
+//********************************************start iterations*************************************************
+	    OUTPUT(c4); 
+		dAddedx4 := JOIN(dAddedx3, dCentroid4, LEFT.id = RIGHT.id AND LEFT.number=RIGHT.number,TRANSFORM(lIterations,SELF.values:=LEFT.values+[RIGHT.value];SELF:=LEFT;));
+		
 			//calculate the deltaC
-			deltac4 := dDistanceDelta(c4 ,c4-1,dAddedx4);
-			OUTPUT(deltac4,NAMED('deltac4'));	
-			
-			bConverged4 := IF(MAX(deltac4,value)<=nConverge,TRUE,FALSE);
-			OUTPUT(bConverged4, NAMED('iteration4_converge'));
-			
-			//get deltaG4
-			//group deltacg by Gt: first JOIN(deltaC with Gt) then group by Gt
+			deltac4 := dDistanceDelta(c4,c4-1,dAddedx4);
+			OUTPUT(deltac4,NAMED('deltac4'));
+
 			deltaG4 := MAX(deltac4, value);
 			OUTPUT(deltaG4,NAMED('deltaG4')); 
-         
-			//update ub0 and lbs0
-			//***
+
 			ub4_temp := JOIN(ub3, deltac4, LEFT.y = RIGHT.id, TRANSFORM(Mat.Types.Element, SElF.value := LEFT.value + RIGHT.value; SELF := LEFT;));
 			OUTPUT(ub4_temp, NAMED('ub4_temp'));
-			lbs4_temp := PROJECT(lbs3,TRANSFORM(Mat.Types.Element, SELF.value := ABS(LEFT.value - deltaG4); SELF := LEFT));
+			lbs4_temp := SORT(PROJECT(lbs3,TRANSFORM(Mat.Types.Element, SELF.value := ABS(LEFT.value - deltaG4); SELF := LEFT)),x);
 			OUTPUT(lbs4_temp, NAMED('lbs4_temp'));
-			//**
-			dMapa4 := PROJECT(ub3, TRANSFORM(ClusterPair, SELF.id := LEFT.x; SELF.clusterid := LEFT.y; SELF.number := 0; SELF.value01 := LEFT.value; SELF.value02 := 0; SELF.value03 := 0;));		
-			ub4_changed_temp := MappedDistances(d01,dCentroid4,fDist,dMapa4);	
-			OUTPUT(ub4_changed_temp);	
-						
-			// groupfilter4	
+
             groupFilter4 := JOIN(lbs4_temp, ub4_temp,LEFT.x = RIGHT.x AND (LEFT.value < RIGHT.value), TRANSFORM(Mat.Types.Element, SELF := RIGHT));	
             OUTPUT(groupFilter4, NAMED('groupFilter4'));	
-            
+
+			
 			changeSet4 := JOIN(d01, groupFilter4, LEFT.id = RIGHT.x, TRANSFORM(LEFT));		
-            OUTPUT(changeSet4, NAMED('changeSet4'));			
+            OUTPUT(changeSet4, NAMED('changeSet4'));		
+            	
 			dMappedDistancesb4 := ML.Cluster.Distances(changeSet4,dCentroid4,fDist);	
-			OUTPUT(dMappedDistancesb4, NAMED('dMappedDistancesb4'));			
+			OUTPUT(dMappedDistancesb4, NAMED('dMappedDistancesb4'));	
+				
+				//old best c all    groupfilter
+			ub4_changed_old := JOIN(dMappedDistancesb4, groupFilter4, LEFT.x = RIGHT.x AND LEFT.y = RIGHT.y, TRANSFORM(LEFT));
+			OUTPUT(ub4_changed_old, NAMED('ub4_changed_old'));
+				//new best c all	groupfilter
 			ub4_changed_final := ML.Cluster.Closest(dMappedDistancesb4);
 			OUTPUT(ub4_changed_final, NAMED('ub4_changed_final'));
-			ub4_changed := JOIN(ub4_changed_temp, ub4_changed_final, LEFT.x = RIGHT.x AND LEFT.value > RIGHT.value, TRANSFORM(Mat.Types.Element, SELF := RIGHT;));
+			
+			ub4_changed:= JOIN(ub4_changed_old, ub4_changed_final, LEFT.x = RIGHT.x AND LEFT.value > RIGHT.value, TRANSFORM(Mat.Types.Element, SELF := RIGHT;));
 			OUTPUT(ub4_changed, NAMED('ub4_changed'));
-			ub4_unchanged := JOIN(ub4_changed_temp, ub4_changed, LEFT.x = RIGHT.x, TRANSFORM(LEFT),LEFT ONLY);
-			OUTPUT(ub4_unchanged, NAMED('ub4_unchanged'));
+					
+			ub4_unchanged_temp := JOIN(ub4_temp, ub4_changed, LEFT.x = RIGHT.x, TRANSFORM(LEFT),LEFT ONLY);
+			OUTPUT(ub4_unchanged_temp, NAMED('ub4_unchanged_temp'));
+			
+			dMapa4 := PROJECT(ub4_unchanged_temp, TRANSFORM(ClusterPair, SELF.id := LEFT.x; SELF.clusterid := LEFT.y; SELF.number := 0; SELF.value01 := LEFT.value; SELF.value02 := 0; SELF.value03 := 0;));		
+			ub4_unchanged:= MappedDistances(d01,dCentroid4,fDist,dMapa4);	
+			OUTPUT(ub4_unchanged);	
+			
 			ub4 := SORT(ub4_changed + ub4_unchanged, x, y, value);
-            OUTPUT(ub4, NAMED('ub4'));							
+            OUTPUT(ub4, NAMED('ub4'));	
+            
+			//updating lb
+		            					
 			lbs4_changed_temp := JOIN(dMappedDistancesb4, ub4_changed, LEFT.x = RIGHT.x, TRANSFORM(Mat.Types.Element, SELF := LEFT;));
 			OUTPUT(lbs4_changed_temp, NAMED('lbs4_changed_temp'));
+			
 			lbs4_changed_temp1 := JOIN(lbs4_changed_temp, ub4_changed, LEFT.x = RIGHT.x AND LEFT.y = RIGHT.y, TRANSFORM(LEFT), LEFT ONLY);
 			OUTPUT(lbs4_changed_temp1, NAMED('lbs4_changed_temp1'));
+			
 			lbs4_changed_temp2:= GROUP(SORT(lbs4_changed_temp1, x), x);
 			OUTPUT(lbs4_changed_temp2, NAMED('lbs4_changed_temp2'));
+			
 			lbs4_changed := TOPN( lbs4_changed_temp2,1, value);
-			OUTPUT(lbs4_changed, NAMED('lbs4_changed'));
+			OUTPUT(lbs4_changed, NAMED('lbs4_changed'));			
 			lbs4_unchanged:= JOIN(lbs4_temp, lbs4_changed, LEFT.x = RIGHT.x, LEFT ONLY);
             OUTPUT(lbs4_unchanged, NAMED('lbs4_unchanged'));
-            lbs4 := SORT(lbs4_unchanged + lbs4_changed, x);			
-			OUTPUT(lbs4, NAMED('lbs4'));
+		   lbs4 := SORT(lbs4_unchanged + lbs4_changed, x);			
+		   OUTPUT(lbs4, NAMED('lbs4'));
+           dClusterCounts4:=TABLE(ub4,{y;UNSIGNED c:=COUNT(GROUP);},y,FEW);
+		   OUTPUT(dClusterCounts4, NAMED('dClusterCounts4'));
 			
-            dClusterCounts4:=TABLE(ub4,{y;UNSIGNED c:=COUNT(GROUP);},y,FEW);
-			OUTPUT(dClusterCounts4, NAMED('dClusterCounts4'));
 	        // Join closest to the document set and replace the id with the centriod id
 	        dClustered4:=SORT(DISTRIBUTE(JOIN(d01,ub4,LEFT.id=RIGHT.x,TRANSFORM(Types.NumericField,SELF.id:=RIGHT.y;SELF:=LEFT;),HASH),id),RECORD,LOCAL);
 	        // Now roll up on centroid ID, summing up the values for each axis
@@ -621,66 +685,79 @@ c4:=4;		//**
 	        // Join to cluster counts to calculate the new average on each axis
 	        dJoined4:=JOIN(dRolled4,dClusterCounts4,LEFT.id=RIGHT.y,TRANSFORM(Types.NumericField,SELF.value:=LEFT.value/RIGHT.c;SELF:=LEFT;),LOOKUP);
 	        // Find any centroids with no document allegiance and pass those through also
-		    dPass4:=JOIN(dCentroid4,TABLE(dJoined4,{id},id,LOCAL),LEFT.id=RIGHT.id,TRANSFORM(LEFT),LEFT ONLY,LOOKUP);
+		    dPass4:=JOIN(dCentroidIn,TABLE(dJoined4,{id},id,LOCAL),LEFT.id=RIGHT.id,TRANSFORM(LEFT),LEFT ONLY,LOOKUP);
 			dCentroid5 := SORT(dPass4 + dJoined4, id);
-            OUTPUT(dCentroid5, NAMED('dCentroid5')); 
+            OUTPUT(dCentroid5, NAMED('dCentroid5'));
+//itr5
 
-c5:=5;		//**	
-			dAddedx5 := JOIN(dAddedx4, dCentroid5, LEFT.id = RIGHT.id AND LEFT.number=RIGHT.number,TRANSFORM(lIterations,SELF.values:=LEFT.values+[RIGHT.value];SELF:=LEFT;));
+c5:=5;
+
+//********************************************start iterations*************************************************
+	    OUTPUT(c5); 
+		dAddedx5 := JOIN(dAddedx4, dCentroid5, LEFT.id = RIGHT.id AND LEFT.number=RIGHT.number,TRANSFORM(lIterations,SELF.values:=LEFT.values+[RIGHT.value];SELF:=LEFT;));
+		
 			//calculate the deltaC
-			deltac5 := dDistanceDelta(c5 ,c5-1,dAddedx5);
-			OUTPUT(deltac5,NAMED('deltac5'));	
-			
-			bConverged5 := IF(MAX(deltac5,value)<=nConverge,TRUE,FALSE);
-			OUTPUT(bConverged5, NAMED('iteration5_converge'));
-			
-			//get deltaG5
-			//group deltacg by Gt: first JOIN(deltaC with Gt) then group by Gt
+			deltac5 := dDistanceDelta(c5,c5-1,dAddedx5);
+			OUTPUT(deltac5,NAMED('deltac5'));
+
 			deltaG5 := MAX(deltac5, value);
 			OUTPUT(deltaG5,NAMED('deltaG5')); 
-         
-			//update ub0 and lbs0
-			//***
+
 			ub5_temp := JOIN(ub4, deltac5, LEFT.y = RIGHT.id, TRANSFORM(Mat.Types.Element, SElF.value := LEFT.value + RIGHT.value; SELF := LEFT;));
 			OUTPUT(ub5_temp, NAMED('ub5_temp'));
-			lbs5_temp := PROJECT(lbs4,TRANSFORM(Mat.Types.Element, SELF.value := ABS(LEFT.value - deltaG5); SELF := LEFT));
+			lbs5_temp := SORT(PROJECT(lbs4,TRANSFORM(Mat.Types.Element, SELF.value := ABS(LEFT.value - deltaG5); SELF := LEFT)),x);
 			OUTPUT(lbs5_temp, NAMED('lbs5_temp'));
-			//**
-			dMapa5 := PROJECT(ub4, TRANSFORM(ClusterPair, SELF.id := LEFT.x; SELF.clusterid := LEFT.y; SELF.number := 0; SELF.value01 := LEFT.value; SELF.value02 := 0; SELF.value03 := 0;));		
-			ub5_changed_temp := MappedDistances(d01,dCentroid5,fDist,dMapa5);	
-			OUTPUT(ub5_changed_temp);	
-						
-			// groupfilter5	
+
             groupFilter5 := JOIN(lbs5_temp, ub5_temp,LEFT.x = RIGHT.x AND (LEFT.value < RIGHT.value), TRANSFORM(Mat.Types.Element, SELF := RIGHT));	
             OUTPUT(groupFilter5, NAMED('groupFilter5'));	
-            
+
+			
 			changeSet5 := JOIN(d01, groupFilter5, LEFT.id = RIGHT.x, TRANSFORM(LEFT));		
-            OUTPUT(changeSet5, NAMED('changeSet5'));			
+            OUTPUT(changeSet5, NAMED('changeSet5'));		
+            	
 			dMappedDistancesb5 := ML.Cluster.Distances(changeSet5,dCentroid5,fDist);	
-			OUTPUT(dMappedDistancesb5, NAMED('dMappedDistancesb5'));			
+			OUTPUT(dMappedDistancesb5, NAMED('dMappedDistancesb5'));	
+				
+				//old best c all    groupfilter
+			ub5_changed_old := JOIN(dMappedDistancesb5, groupFilter5, LEFT.x = RIGHT.x AND LEFT.y = RIGHT.y, TRANSFORM(LEFT));
+			OUTPUT(ub5_changed_old, NAMED('ub5_changed_old'));
+				//new best c all	groupfilter
 			ub5_changed_final := ML.Cluster.Closest(dMappedDistancesb5);
 			OUTPUT(ub5_changed_final, NAMED('ub5_changed_final'));
-			ub5_changed := JOIN(ub5_changed_temp, ub5_changed_final, LEFT.x = RIGHT.x AND LEFT.value > RIGHT.value, TRANSFORM(Mat.Types.Element, SELF := RIGHT;));
+			
+			ub5_changed:= JOIN(ub5_changed_old, ub5_changed_final, LEFT.x = RIGHT.x AND LEFT.value > RIGHT.value, TRANSFORM(Mat.Types.Element, SELF := RIGHT;));
 			OUTPUT(ub5_changed, NAMED('ub5_changed'));
-			ub5_unchanged := JOIN(ub5_changed_temp, ub5_changed, LEFT.x = RIGHT.x, TRANSFORM(LEFT),LEFT ONLY);
-			OUTPUT(ub5_unchanged, NAMED('ub5_unchanged'));
+					
+			ub5_unchanged_temp := JOIN(ub5_temp, ub5_changed, LEFT.x = RIGHT.x, TRANSFORM(LEFT),LEFT ONLY);
+			OUTPUT(ub5_unchanged_temp, NAMED('ub5_unchanged_temp'));
+			
+			dMapa5 := PROJECT(ub5_unchanged_temp, TRANSFORM(ClusterPair, SELF.id := LEFT.x; SELF.clusterid := LEFT.y; SELF.number := 0; SELF.value01 := LEFT.value; SELF.value02 := 0; SELF.value03 := 0;));		
+			ub5_unchanged:= MappedDistances(d01,dCentroid5,fDist,dMapa5);	
+			OUTPUT(ub5_unchanged);	
+			
 			ub5 := SORT(ub5_changed + ub5_unchanged, x, y, value);
-            OUTPUT(ub5, NAMED('ub5'));							
+            OUTPUT(ub5, NAMED('ub5'));	
+            
+			//updating lb
+		            					
 			lbs5_changed_temp := JOIN(dMappedDistancesb5, ub5_changed, LEFT.x = RIGHT.x, TRANSFORM(Mat.Types.Element, SELF := LEFT;));
 			OUTPUT(lbs5_changed_temp, NAMED('lbs5_changed_temp'));
+			
 			lbs5_changed_temp1 := JOIN(lbs5_changed_temp, ub5_changed, LEFT.x = RIGHT.x AND LEFT.y = RIGHT.y, TRANSFORM(LEFT), LEFT ONLY);
 			OUTPUT(lbs5_changed_temp1, NAMED('lbs5_changed_temp1'));
+			
 			lbs5_changed_temp2:= GROUP(SORT(lbs5_changed_temp1, x), x);
 			OUTPUT(lbs5_changed_temp2, NAMED('lbs5_changed_temp2'));
+			
 			lbs5_changed := TOPN( lbs5_changed_temp2,1, value);
-			OUTPUT(lbs5_changed, NAMED('lbs5_changed'));
+			OUTPUT(lbs5_changed, NAMED('lbs5_changed'));			
 			lbs5_unchanged:= JOIN(lbs5_temp, lbs5_changed, LEFT.x = RIGHT.x, LEFT ONLY);
             OUTPUT(lbs5_unchanged, NAMED('lbs5_unchanged'));
-            lbs5 := SORT(lbs5_unchanged + lbs5_changed, x);			
-			OUTPUT(lbs5, NAMED('lbs5'));
+		   lbs5 := SORT(lbs5_unchanged + lbs5_changed, x);			
+		   OUTPUT(lbs5, NAMED('lbs5'));
+           dClusterCounts5:=TABLE(ub5,{y;UNSIGNED c:=COUNT(GROUP);},y,FEW);
+		   OUTPUT(dClusterCounts5, NAMED('dClusterCounts5'));
 			
-            dClusterCounts5:=TABLE(ub5,{y;UNSIGNED c:=COUNT(GROUP);},y,FEW);
-			OUTPUT(dClusterCounts5, NAMED('dClusterCounts5'));
 	        // Join closest to the document set and replace the id with the centriod id
 	        dClustered5:=SORT(DISTRIBUTE(JOIN(d01,ub5,LEFT.id=RIGHT.x,TRANSFORM(Types.NumericField,SELF.id:=RIGHT.y;SELF:=LEFT;),HASH),id),RECORD,LOCAL);
 	        // Now roll up on centroid ID, summing up the values for each axis
@@ -688,7 +765,7 @@ c5:=5;		//**
 	        // Join to cluster counts to calculate the new average on each axis
 	        dJoined5:=JOIN(dRolled5,dClusterCounts5,LEFT.id=RIGHT.y,TRANSFORM(Types.NumericField,SELF.value:=LEFT.value/RIGHT.c;SELF:=LEFT;),LOOKUP);
 	        // Find any centroids with no document allegiance and pass those through also
-		    dPass5:=JOIN(dCentroid5,TABLE(dJoined5,{id},id,LOCAL),LEFT.id=RIGHT.id,TRANSFORM(LEFT),LEFT ONLY,LOOKUP);
+		    dPass5:=JOIN(dCentroidIn,TABLE(dJoined5,{id},id,LOCAL),LEFT.id=RIGHT.id,TRANSFORM(LEFT),LEFT ONLY,LOOKUP);
 			dCentroid6 := SORT(dPass5 + dJoined5, id);
-            OUTPUT(dCentroid6, NAMED('dCentroid6')); 
-
+            OUTPUT(dCentroid6, NAMED('dCentroid6'));
+   

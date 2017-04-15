@@ -1,4 +1,4 @@
-// K-MEANS EXAMPLE
+﻿// K-MEANS EXAMPLE
 //
 // Presents K-Means clustering in a 2-dimensional space. 100 data points
 // are initialized with random values on the x and y axes, and 4 centroids
@@ -16,7 +16,7 @@ IMPORT excercise.uscensus as uscensus;
 
 lMatrix:={UNSIGNED id;REAL x;REAL y;};
 
-//DP100
+////DP100
 dDocumentMatrix:=DATASET([
 {1,2.4639,7.8579},
 {2,0.5573,9.4681},
@@ -131,7 +131,7 @@ dCentroidMatrix:=DATASET([
 //iris
 // dDocumentMatrix := irisset.input;
 // dCentroidMatrix := irisset.input[1..3];
-
+//dCentroidMatrix := irisset.input[1] + irisset.input[51] + irisset.input[101];
 //KEGG
 // dDocumentMatrix := network.input;
 // dCentroidMatrix := network.input[1..4];
@@ -144,15 +144,15 @@ dCentroidMatrix:=DATASET([
 ML.ToField(dDocumentMatrix,dDocuments);
 ML.ToField(dCentroidMatrix,dCentroids);
                                                      
-// KMeans:=ML.Cluster_GF_review.YinyangKMeans(dDocuments,dCentroids,30,.3);  // Set up YYKMeans with a maximum of 30 iterations and .3 as a convergence threshold
-KMeans:=ML.cluster_gf_t1.YinyangKMeans(dDocuments,dCentroids,30,.3);
-//KMeans:=ML.Cluster_GF_t0.KMeans(dDocuments,dCentroids,30,.3);
+ KMeans:=ML.Cluster_GF_review.YinyangKMeans(dDocuments,dCentroids,30,0);  // Set up YYKMeans with a maximum of 30 iterations and .3 as a convergence threshold
+//KMeans:=ML.cluster_gf_t1.YinyangKMeans(dDocuments,dCentroids,30,0);
+//KMeans:=ML.Cluster_gf_t0.KMeans(dDocuments,dCentroids,30,0);
 //KMeans:=ML.loopfilter.YinyangKMeans(dDocuments,dCentroids,30,.3);
 //KMeans:=ML.loopfilterold.YinyangKMeans(dDocuments,dCentroids,30,.3);
-//KMeans:=ML.topntest.YinyangKMeans(dDocuments,dCentroids,30,.3);
-//KMeans:=ML.test.YinyangKMeans(dDocuments,dCentroids,30,.3);
-//KMeans.Allresults; 
-KMeans.Convergence;                                      // The table that contains the results of each iteration
+//KMeans:=ML.onegroupfaster.YinyangKMeans(dDocuments,dCentroids,30,0);
+//KMeans:=ML.onegroupwoldcode.YinyangKMeans(dDocuments,dCentroids,30,.3);
+KMeans.Allresults; 
+//KMeans.Convergence;                                     // The table that contains the results of each iteration
 //KMeans.Convergence;
-//KMeans.Allegiances();
+KMeans.Allegiances();
 
