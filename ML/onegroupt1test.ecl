@@ -1,4 +1,4 @@
-// IMPORT * FROM $;
+﻿// IMPORT * FROM $;
 // IMPORT Std.Str AS Str;
 IMPORT TS;
 IMPORT ML.Mat;
@@ -376,7 +376,7 @@ c:=1;
             OUTPUT(changeSet1, NAMED('changeSet1'));		
             	
 			dMappedDistancesb1 := ML.Cluster.Distances(changeSet1,dCentroidIn,fDist);	
-			OUTPUT(CHOOSEN(dMappedDistancesb1,1000), ALL,NAMED('dMappedDistancesb1'));	
+			OUTPUT(dMappedDistancesb1, NAMED('dMappedDistancesb1'));	
 				
 				//old best c all    groupfilter
 			ub1_changed_old := JOIN(dMappedDistancesb1, groupFilter1, LEFT.x = RIGHT.x AND LEFT.y = RIGHT.y, TRANSFORM(LEFT));

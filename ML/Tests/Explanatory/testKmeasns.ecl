@@ -146,7 +146,7 @@ ML.ToField(dCentroidMatrix,dCentroids);
 
 //**every record of d01 and d02 are all on node1
 
-#WORKUNIT('name', 'KMEANS');                                              
+                                                     
 // KMeans:=ML.Cluster_GF_review.YinyangKMeans(dDocuments,dCentroids,30,.3);  // Set up YYKMeans with a maximum of 30 iterations and .3 as a convergence threshold
 //KMeans:=ML.cluster_gf_t1.KMeans(dDocuments,dCentroids,30,.3);
 //KMeans:=ML.onegroupfaster.YinyangKMeans(dDocuments,dCentroids,30,.3);

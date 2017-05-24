@@ -10,13 +10,10 @@
 //---------------------------------------------------------------------------
 
 IMPORT ML;
-IMPORT excercise.irisset as irisset;
-IMPORT excercise.relation20network as network;
-IMPORT excercise.uscensus as uscensus;
 
 lMatrix:={UNSIGNED id;REAL x;REAL y;};
-/**
-////DP100
+
+//DP100
 dDocumentMatrix:=DATASET([
 {1,2.4639,7.8579},
 {2,0.5573,9.4681},
@@ -127,52 +124,10 @@ dCentroidMatrix:=DATASET([
 {4,4,4}
 ],lMatrix);
 
-**/
-//iris
-// dDocumentMatrix := irisset.input;
-// dCentroidMatrix := irisset.input[1..3];
-
-//KEGG
- dDocumentMatrix := network.input;
- dCentroidMatrix := network.input[1..4];
-
-//uscensus
-// dDocumentMatrix := uscensus.input;
-// dCentroidMatrix := uscensus.input[1..4];
-
-
 ML.ToField(dDocumentMatrix,dDocuments);
 ML.ToField(dCentroidMatrix,dCentroids);
-
-//**every record of d01 and d02 are all on node1
-
-#WORKUNIT('name', 'KMEANS');                                              
-// KMeans:=ML.Cluster_GF_review.YinyangKMeans(dDocuments,dCentroids,30,.3);  // Set up YYKMeans with a maximum of 30 iterations and .3 as a convergence threshold
-//KMeans:=ML.cluster_gf_t1.KMeans(dDocuments,dCentroids,30,.3);
-//KMeans:=ML.onegroupfaster.YinyangKMeans(dDocuments,dCentroids,30,.3);
-KMeans:=ML.onegroupfaster.KMeans(dDocuments,dCentroids,30,0.3);
-//KMeans:=ML.loopfilter.YinyangKMeans(dDocuments,dCentroids,30,.3);
-//KMeans:=ML.loopfilterold.YinyangKMeans(dDocuments,dCentroids,30,.3);
-//KMeans:=ML.topntest.YinyangKMeans(dDocuments,dCentroids,30,.3);
-//KMeans:=ML.test.YinyangKMeans(dDocuments,dCentroids,30,.3);
-KMeans.Allresults; 
-//KMeans.Convergence;                                     // The table that contains the results of each iteration
-//KMeans.Convergence;
-//KMeans.Allegiances();
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+                                                     
+YinyangKMeans:=ML.onegroupfaster.YinyangKMeans(dDocuments,dCentroids,30,0.3);  // Set up YYKMeans with a maximum of 30 iterations and .3 as a convergence threshold
+YinyangKMeans.Allresults;
 
 

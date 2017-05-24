@@ -9,7 +9,7 @@ IMPORT * FROM $;
 IMPORT Std.Str AS Str;
 IMPORT ML.Mat;
 
-EXPORT Cluster1 := MODULE
+EXPORT Cluster_GF := MODULE
 
 	// Working structure for cluster distance logic
   SHARED ClusterPair:=RECORD

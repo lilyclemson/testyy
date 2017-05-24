@@ -59,7 +59,8 @@ SELF.Pathway := c;
 SELF := ds;
 END;
 dataTemp := DATASET('~::keggundirected.txt' ,lData,  CSV(HEADING(1)));
-EXPORT input := PROJECT(dataTemp,changeFormat(LEFT,COUNTER));
+EXPORT input := SAMPLE(PROJECT(dataTemp,changeFormat(LEFT,COUNTER)),4);
+//EXPORT input := PROJECT(dataTemp,changeFormat(LEFT,COUNTER));
 END;
 
 

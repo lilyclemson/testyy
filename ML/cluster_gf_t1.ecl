@@ -1,4 +1,4 @@
-//-----------------------------------------------------------------------------
+﻿//-----------------------------------------------------------------------------
 // Module used to cluster perform clustering on data in the NumericField
 // format.  Includes functions for calculating distance using many different
 // algorithms, determining centroid allegiance based on those distances, and
@@ -708,8 +708,8 @@ dCentroid1 := dJoined_ini + dPass_ini;
 			dLbsOut := JOIN(iLbs, lbs1, LEFT.x = RIGHT.x ,TRANSFORM(lInput,SELF.id := 3;SELF.values:=LEFT.values+[RIGHT.value];SELF.converge := bConverged;SELF.iter := c; SELF:=LEFT;));
 			//Combine all updated sub-datasets as the output dataset for next iteration
 			dOutput := dCentroidsOut+ dUbOut + dLbsOut;
-//			RETURN WHEN(dOutput, action);
-			RETURN dOutput;
+			RETURN WHEN(dOutput, action);
+//			RETURN dOutput;
 
 		END;
 		dIterationResults :=LOOP(dInput,LEFT.converge = False AND COUNTER <= n - 1,fIterate(ROWS(LEFT),COUNTER));
