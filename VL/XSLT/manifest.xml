@@ -1,0 +1,7 @@
+<Manifest>
+  <Resource type="XSLT" filename="chart_view.xslt" name="Chart_Results"/>
+
+  <Views>
+    <Results type="XSLT" resource="Chart_Results" name="View Chart" />
+  </Views>
+</Manifest>
