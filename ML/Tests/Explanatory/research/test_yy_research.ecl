@@ -160,15 +160,15 @@ ML.ToField(dCentroidMatrix,dCentroids);
 
 // #WORKUNIT('name', 'YinyangKMeansv2_v1:HTHOR:KEGG:30:0.6');  
 // YinyangKMeans:=ML.yinyang.drafts.onegroupfasterv1.YinyangKMeans(dDocuments,dCentroids,30,0.6); 
-#WORKUNIT('name', 'YinyangKMeansv2:HTHOR:KEGG:30:0.6');  
-YinyangKMeans:=ML.onegroupfaster.YinyangKMeans(dDocuments,dCentroids,30,0.6); 
+// #WORKUNIT('name', 'YinyangKMeansv2:HTHOR:KEGG:30:0.6');  
+// YinyangKMeans:=ML.onegroupfaster.YinyangKMeans(dDocuments,dCentroids,30,0.6); 
 
 
 
 // #WORKUNIT('name', 'YinyangKMeansv2_v1:HTHOR:KEGG:30:1.0');  
 // YinyangKMeans:=ML.yinyang.drafts.onegroupfasterv1.YinyangKMeans(dDocuments,dCentroids,30,1.0); 
-// #WORKUNIT('name', 'YinyangKMeansv2:HTHOR:KEGG:30:1.0'); 
-// YinyangKMeans:=ML.onegroupfaster.YinyangKMeans(dDocuments,dCentroids,30,1.0); 
+#WORKUNIT('name', 'YinyangKMeansv2:HTHOR:KEGG:30:1.0'); 
+YinyangKMeans:=ML.onegroupfaster.YinyangKMeans(dDocuments,dCentroids,300,1.0); 
 
 
 
