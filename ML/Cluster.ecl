@@ -47,7 +47,7 @@ EXPORT Cluster := MODULE
 		//         A leading W implies a 'wide' version and is probably simple, unrestricted and painful
 		//         No leading letter implies our 'best shot' at the 'correct' result
     EXPORT Default := MODULE,VIRTUAL
-		  EXPORT UNSIGNED1 PModel := c_model.dense; // The process model for this distance metric
+		    EXPORT UNSIGNED1 PModel := c_model.dense; // The process model for this distance metric
 			EXPORT REAL8 EV1(DATASET(Types.NumericField) d) := 0; // An 'exotic' value which will be passed in at Comb time
 			EXPORT REAL8 EV2(DATASET(Types.NumericField) d) := 0; // An 'exotic' value which will be passed in at Comb time
 			EXPORT BOOLEAN JoinFilter(Types.t_FieldReal x,Types.t_FieldReal y,REAL8 ex1) := x<>0 OR y<>0; // If false - join value will not be computed
@@ -525,7 +525,8 @@ EXPORT Cluster := MODULE
 
 		//***********************************************Start OF Gt*****************************************************
 		//To Do :Put the Group concept into consideration for future impelemenation ( t >1 )
-		Gt := DEDUP(PROJECT(dCentroid0, TRANSFORM(Mat.Types.Element,SELF.x := LEFT.id; SELF.y :=1; SELF.value := LEFT.value;)),x);
+		Gt := DEDUP(PROJECT(dCentroid0, TRANSFORM(Mat.Types.Element,SELF.x := LEFT.id; SELF.y :=1; SELF.value := LEFT.value;)), LEFT.x != RIGHT.x OR LEFT.y != RIGHT.y);
+
 		//***********************************************END OF Gt*****************************************************
 	
 		//Initialize the Upper Bound (ub) of each data point
@@ -595,11 +596,11 @@ EXPORT Cluster := MODULE
 					//Get deltaG: the maximum drift of the centroids in each group
 					//The value of deltaG is a single value if there is only one group.
 					dGroupDeltaC :=JOIN(dDeltaC, Gt, LEFT.id = RIGHT.x, TRANSFORM(Mat.Types.Element,SELF.value := LEFT.value; SELF := RIGHT;));
-//					dDeltaG := DEDUP(SORT(DISTRIBUTE(dGroupDeltaC,y),y,value,LOCAL),y,RIGHT);
+					dDeltaG := DEDUP(SORT(DISTRIBUTE(dGroupDeltaC,y),y,value,LOCAL),y,RIGHT);
 					
-					//*******remove distribute
-					dDeltaG := DEDUP(SORT(dGroupDeltaC,y,value),y,RIGHT);
-					//********remove distribute
+					//*******Use TABLE() instead of DEDUP to get dDeltaG
+//         dDeltaG1 := TABLE(dGroupDeltaC, {y, v:=MAX(GROUP,value);},y,FEW, UNSORTED);
+//         dDeltaG := PROJECT(dDeltaG1, TRANSFORM({LEFT.y,Mat.Types.Element.value}, SELF.y := LEFT.y, SELF.value := LEFT.v));
 					
 					//Update dUbItr : ub1_temp = dUbItr + dDeltaC
 					dUbGroupFilter := JOIN(dUbItr, dDeltaC, LEFT.y = RIGHT.id, TRANSFORM(Mat.Types.Element, SElF.value := LEFT.value + RIGHT.value; SELF := LEFT;));
@@ -634,7 +635,7 @@ EXPORT Cluster := MODULE
 					dLbsUpdate := JOIN(dLbsGroupFilter, dSecondClosest,LEFT.x = RIGHT.x, TRANSFORM(Mat.Types.Element, SELF.value := IF( RIGHT.value = 0,LEFT.value, RIGHT.value); SELF := LEFT;), LEFT OUTER );
 
 
-					//Calculate Vin: the number of data points who move into a cluster					
+					//Calculate Vin: the number of data points who move into a new cluster					
 					dClusterCountsVin:=TABLE(LocalFilter, {y; INTEGER c := COUNT(GROUP)},y);
 					// Join closest to the document set and replace the id with the centriod id
 					dClusteredVin := JOIN(d01, LocalFilter, LEFT.id = RIGHT.x,TRANSFORM(Types.NumericField,SELF.id:=RIGHT.y;SELF:=LEFT;));
