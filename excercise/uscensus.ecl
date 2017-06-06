@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 ﻿EXPORT uscensus := MODULE
 lData :=RECORD
 UNSIGNED caseid;
@@ -76,3 +77,83 @@ EXPORT input := dataTemp;
 END;
 
 
+=======
+﻿EXPORT uscensus := MODULE
+lData :=RECORD
+UNSIGNED caseid;
+UNSIGNED dAge; 
+UNSIGNED dAncstry1; 
+UNSIGNED dAncstry2; 
+UNSIGNED iAvail; 
+UNSIGNED iCitizen; 
+UNSIGNED iClass; 
+UNSIGNED dDepart; 
+UNSIGNED iDisabl1; 
+UNSIGNED iDisabl2 ;
+UNSIGNED iEnglish ;
+UNSIGNED iFeb55 ;
+UNSIGNED iFertil ;
+UNSIGNED dHispanic; 
+UNSIGNED dHour89 ;
+UNSIGNED dHours ;
+UNSIGNED iImmigr ;
+UNSIGNED dIncome1 ;
+UNSIGNED dIncome2 ;
+UNSIGNED dIncome3 ;
+UNSIGNED dIncome4 ;
+UNSIGNED dIncome5 ;
+UNSIGNED dIncome6 ;
+UNSIGNED dIncome7 ;
+UNSIGNED dIncome8 ;
+UNSIGNED dIndustry ;
+UNSIGNED iKorean ;
+UNSIGNED iLang1 ;
+UNSIGNED iLooking; 
+UNSIGNED iMarital ;
+UNSIGNED iMay75880 ;
+UNSIGNED iMeans ;
+UNSIGNED iMilitary; 
+UNSIGNED iMobility; 
+UNSIGNED iMobillim ;
+UNSIGNED dOccup ;
+UNSIGNED iOthrserv; 
+UNSIGNED iPerscare; 
+UNSIGNED dPOB ;
+UNSIGNED dPoverty; 
+UNSIGNED dPwgt1 ;
+UNSIGNED iRagechld; 
+UNSIGNED dRearning; 
+UNSIGNED iRelat1 ;
+UNSIGNED iRelat2 ;
+UNSIGNED iRemplpar ;
+UNSIGNED iRiders ;
+UNSIGNED iRlabor ;
+UNSIGNED iRownchld; 
+UNSIGNED dRpincome ;
+UNSIGNED iRPOB ;
+UNSIGNED iRrelchld; 
+UNSIGNED iRspouse ;
+UNSIGNED iRvetserv ;
+UNSIGNED iSchool ;
+UNSIGNED iSept80 ;
+UNSIGNED iSex ;
+UNSIGNED iSubfam1; 
+UNSIGNED iSubfam2 ;
+UNSIGNED iTmpabsnt ;
+UNSIGNED dTravtime ;
+UNSIGNED iVietnam ;
+UNSIGNED dWeek89 ;
+UNSIGNED iWork89 ;
+UNSIGNED iWorklwk ;
+UNSIGNED iWWII ;
+UNSIGNED iYearsch; 
+UNSIGNED iYearwrk ;
+UNSIGNED dYrsserv;
+END;
+
+dataTemp := DATASET('~::uscensus1990.txt' ,lData,  CSV(HEADING(1)));
+EXPORT input := dataTemp;
+END;
+
+
+>>>>>>> 3de2873bf7e1684cb50b7aa9a6f6bcd085d1c004
