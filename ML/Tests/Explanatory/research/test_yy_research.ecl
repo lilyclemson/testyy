@@ -137,7 +137,11 @@ dCentroidMatrix:=DATASET([
 
 //KEGG
 dDocumentMatrix := kegg.input;
+<<<<<<< HEAD
 dCentroidMatrix := kegg.input[1..4];
+=======
+dCentroidMatrix := kegg.input[1..10];
+>>>>>>> lily
  
 //uscensus
 //dDocumentMatrix := uscensus.input;
@@ -154,22 +158,36 @@ ML.ToField(dCentroidMatrix,dCentroids);
 
 // #WORKUNIT('name', 'YinyangKMeansv2_v1:HTHOR:KEGG:30:0.3');
 // YinyangKMeans:=ML.yinyang.drafts.onegroupfasterv1.YinyangKMeans(dDocuments,dCentroids,30,0.3); 
+<<<<<<< HEAD
 // #WORKUNIT('name', 'YinyangKMeansv2:HTHOR:KEGG:30:0.3'); 
 // YinyangKMeans:=ML.onegroupfaster.YinyangKMeans(dDocuments,dCentroids,30,0.3);
+=======
+#WORKUNIT('name', 'YinyangKMeansv2:HTHOR:KEGG:30:0.3'); 
+YinyangKMeans:=ML.onegroupfaster.YinyangKMeans(dDocuments,dCentroids,30,0.3);
+>>>>>>> lily
 
 
 // #WORKUNIT('name', 'YinyangKMeansv2_v1:HTHOR:KEGG:30:0.6');  
 // YinyangKMeans:=ML.yinyang.drafts.onegroupfasterv1.YinyangKMeans(dDocuments,dCentroids,30,0.6); 
+<<<<<<< HEAD
 #WORKUNIT('name', 'YinyangKMeansv2:HTHOR:KEGG:30:0.6');  
 YinyangKMeans:=ML.onegroupfaster.YinyangKMeans(dDocuments,dCentroids,30,0.6); 
+=======
+// #WORKUNIT('name', 'YinyangKMeansv2:HTHOR:KEGG:30:0.6');  
+// YinyangKMeans:=ML.onegroupfaster.YinyangKMeans(dDocuments,dCentroids,30,0.6); 
+>>>>>>> lily
 
 
 
 // #WORKUNIT('name', 'YinyangKMeansv2_v1:HTHOR:KEGG:30:1.0');  
 // YinyangKMeans:=ML.yinyang.drafts.onegroupfasterv1.YinyangKMeans(dDocuments,dCentroids,30,1.0); 
 // #WORKUNIT('name', 'YinyangKMeansv2:HTHOR:KEGG:30:1.0'); 
+<<<<<<< HEAD
 // YinyangKMeans:=ML.onegroupfaster.YinyangKMeans(dDocuments,dCentroids,30,1.0); 
 
+=======
+// YinyangKMeans:=ML.onegroupfaster.YinyangKMeans(dDocuments,dCentroids,300,1.0); 
+>>>>>>> lily
 
 
 //output

@@ -16,7 +16,11 @@ IMPORT excercise.irisset as irisset;
 IMPORT excercise.kegg;
 lMatrix:={UNSIGNED id;REAL x;REAL y;};
 
+<<<<<<< HEAD
 /**
+=======
+/***/
+>>>>>>> lily
 //DP100
 dDocumentMatrix:=DATASET([
 {1,2.4639,7.8579},
@@ -127,23 +131,45 @@ dCentroidMatrix:=DATASET([
 {3,3,3},
 {4,4,4}
 ],lMatrix);
+<<<<<<< HEAD
 */
+=======
+
+>>>>>>> lily
 
 //iris
 //dDocumentMatrix := irisset.input;
 //dCentroidMatrix := irisset.input[1..3];
 
 //KEGG
+<<<<<<< HEAD
 dDocumentMatrix := kegg.input;
 dCentroidMatrix := kegg.input[1..100];
+=======
+// dDocumentMatrix := kegg.input;
+// dCentroidMatrix := kegg.input[1..10];
+>>>>>>> lily
 
 ML.ToField(dDocumentMatrix,dDocuments);
 ML.ToField(dCentroidMatrix,dCentroids);
 
 
+<<<<<<< HEAD
 #WORKUNIT('name', 'YinyangKMeansV2:THOR::KEGG:30:0.3'); 
 YinyangKMeans:=ML.onegroupfaster.YinyangKMeans(dDocuments,dCentroids,30,0.3);
 OUTPUT(YinyangKMeans.Allresults, NAMED('YinyangKMeansAllresults'));                   
 //OUTPUT(YinyangKMeans.Convergence, NAMED('YinyangKMeansTotal_Iterations')); 
+=======
+// #WORKUNIT('name', 'YinyangKMeansV2:THOR::KEGG:30:0.3'); 
+// YinyangKMeans:=ML.onegroupfaster.YinyangKMeans(dDocuments,dCentroids,30,0.3);
+
+// #WORKUNIT('name', 'multigroup_debug:THOR::KEGG:30:0.3'); 
+// YinyangKMeans:=ML.yinyang.drafts.multigroup_debug.YinyangKMeans(dDocuments,dCentroids,30,0.3);
+
+#WORKUNIT('name', 'YinyangKMeansv4test:THOR::DP100:2:0.3'); 
+YinyangKMeans:=ML.yinyang.drafts.multigroup_debug.YinyangKMeans(dDocuments,dCentroids,2,0.3);
+OUTPUT(YinyangKMeans.Allresults, NAMED('YinyangKMeansAllresults'));                   
+OUTPUT(YinyangKMeans.Convergence, NAMED('YinyangKMeansTotal_Iterations')); 
+>>>>>>> lily
 //OUTPUT(YinyangKMeans.Allegiances(), NAMED('YinyangKMeansAllegiances'));
 

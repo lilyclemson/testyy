@@ -61,6 +61,7 @@ SELF := ds;
 END;
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 // dataTemp := DATASET('~::keggundirected.txt' ,lData,  CSV(HEADING(1)));
 dataTemp := DATASET('~JDH::yinyang::keggundirected.txt' ,lData,  CSV(HEADING(1)));
 =======
@@ -69,6 +70,11 @@ dataTemp := DATASET('~::keggundirected.txt' ,lData,  CSV(HEADING(1)));
 =======
 dataTemp := DATASET('~::keggundirected.txt' ,lData,  CSV(HEADING(1)));
 >>>>>>> parent of e4b1764... upload data
+=======
+
+// dataTemp := DATASET('~::keggundirected.txt' ,lData,  CSV(HEADING(1)));
+dataTemp := DATASET('~JDH::yinyang::keggundirected.txt' ,lData,  CSV(HEADING(1)));
+>>>>>>> lily
 EXPORT input := SAMPLE(PROJECT(dataTemp,changeFormat(LEFT,COUNTER)),4);
 //EXPORT input := PROJECT(dataTemp,changeFormat(LEFT,COUNTER));
 END;

@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 // K-MEANS EXAMPLE
+=======
+﻿// K-MEANS EXAMPLE
+>>>>>>> lily
 //
 // Presents K-Means clustering in a 2-dimensional space. 100 data points
 // are initialized with random values on the x and y axes, and 4 centroids
@@ -12,6 +16,10 @@
 //K-Means testing file: summer intern 2017
 
 IMPORT ML;
+<<<<<<< HEAD
+=======
+IMPORT ML.Types;
+>>>>>>> lily
 IMPORT excercise.irisset as irisset;
 IMPORT excercise.relation20network as kegg;
 IMPORT excercise.uscensus as uscensus;
@@ -132,8 +140,13 @@ dCentroidMatrix:=DATASET([
 */
 
 //iris
+<<<<<<< HEAD
 //dDocumentMatrix := irisset.input;
 //dCentroidMatrix := irisset.input[1..3];
+=======
+// dDocumentMatrix := irisset.input;
+// dCentroidMatrix := irisset.input[1..3];
+>>>>>>> lily
 
 //KEGG
 dDocumentMatrix := kegg.input;
@@ -159,7 +172,27 @@ ML.ToField(dCentroidMatrix,dCentroids);
 //YinyangKMeans:=ML.onegroupfaster.YinyangKMeans(dDocuments,dCentroids,30,1.0); 
 
 #WORKUNIT('name', 'YinyangKMeans:HTHOR:KEGG:30:0.3');
+<<<<<<< HEAD
 YinyangKMeans:=ML.cluster_gf_review.YinyangKMeans(dDocuments,dCentroids,30,0.3);  // Set up YYKMeans with a maximum of 30 iterations and .3 as a convergence threshold
 OUTPUT(YinyangKMeans.Allresults, NAMED('YinyangKMeansAllresults'));                                       // The table that contains the results of each iteration
 //OUTPUT(KMeans.Convergence, NAMED('KMeansTotal_Iterations')); 
 //OUTPUT(KMeans.Allegiances(), NAMED('KMeansAllegiances'));
+=======
+YinyangKMeans:=ML.yinyang.drafts.multigroup_debug.YinyangKMeans(dDocuments,dCentroids,30,0.3); 
+// YinyangKMeans:=ML.yinyang.versions.YinyangKMeansv3.yinyangkmeans(dDocuments,dCentroids,30,0.3); 
+OUTPUT(YinyangKMeans.Allresults, NAMED('YinyangKMeansAllresults'));                                       // The table that contains the results of each iteration
+//OUTPUT(KMeans.Convergence, NAMED('KMeansTotal_Iterations')); 
+//OUTPUT(KMeans.Allegiances(), NAMED('KMeansAllegiances'));
+
+KMeans:=ML.cluster.KMeans(dDocuments,dCentroids,30,0.3); 
+OUTPUT(KMeans.Allresults, NAMED('KMeansAllresults'));
+
+lCompare := RECORD
+Types.NumericField.id;
+Types.NumericField.number;
+Boolean pass;
+END;
+
+result := JOIN(YinyangKMeans.Allresults,KMeans.Allresults,LEFT.id = RIGHT.id AND LEFT.number = RIGHT.number, TRANSFORM(lCompare, SELF.pass := IF(LEFT.values = RIGHT.values, TRUE, FALSE), SELF := LEFT;));
+OUTPUT(result, NAMED('resultscomparison'));
+>>>>>>> lily
