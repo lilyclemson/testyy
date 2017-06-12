@@ -1,16 +1,4 @@
-﻿
-// K-MEANS EXAMPLE
-//
-// Presents K-Means clustering in a 2-dimensional space. 100 data points
-// are initialized with random values on the x and y axes, and 4 centroids
-// are initialized with values assigned to be regular but non-symmetrical.
-//
-// The sample code shows how to determine the new coordinates of the
-// centroids after a user-defined set of iterations. Also shows how to
-// determine the "allegiance" of each data point after those iterations.
-//---------------------------------------------------------------------------
-
-//K-Means testing file: summer intern 2017
+﻿//Yinyang K-Means testing file: compare the result of v2combinev3.ecl to yinyangkmeansv4-test.ecl intern 2017
 
 IMPORT ML;
 IMPORT ML.Types;
@@ -20,7 +8,7 @@ IMPORT excercise.uscensus as uscensus;
 
 lMatrix:={UNSIGNED id;REAL x;REAL y;};
 
-/***/
+/** */
 //DP100
 dDocumentMatrix:=DATASET([
 {1,2.4639,7.8579},
@@ -163,21 +151,46 @@ ML.ToField(dCentroidMatrix,dCentroids);
 // #WORKUNIT('name', 'YinyangKMeans:HTHOR:KEGG:30:0.3');
 #WORKUNIT('name', 'Comparison:THOR:DP100:30:0.3');
 // YinyangKMeans:=ML.yinyang.drafts.multigroup_debug.YinyangKMeans(dDocuments,dCentroids,2,0.3);  
-YinyangKMeans:=ML.yinyang.drafts.v2combinev3.YinyangKMeans(dDocuments,dCentroids,16,0.3);
-OUTPUT(YinyangKMeans.Allresults, NAMED('YinyangKMeansAllresults'));                                       // The table that contains the results of each iteration
-OUTPUT(YinyangKMeans.Convergence, NAMED('YinyangKMeans_Iterations')); 
+YinyangKMeansv23:=ML.yinyang.drafts.v2combinev3.YinyangKMeans(dDocuments,dCentroids,30,0.3);
+OUTPUT(YinyangKMeansv23.Allresults, NAMED('YinyangKMeansv23_allresults'));                                       // The table that contains the results of each iteration
+OUTPUT(YinyangKMeansv23.Convergence, NAMED('YinyangKMeansv23_Iterations')); 
 //OUTPUT(KMeans.Allegiances(), NAMED('KMeansAllegiances'));
 
-KMeans:=ML.yinyang.drafts.onegroupfaster_comp.KMeans(dDocuments,dCentroids,16,0.3); 
-OUTPUT(KMeans.Allresults, NAMED('KMeansAllresults'));
-OUTPUT(KMeans.Convergence, NAMED('KMeansTotal_Iterations')); 
+YinyangKMeansv4:=ML.yinyang.drafts.yinyangkmeansv4_test.YinyangKMeans(dDocuments,dCentroids,30,0.3);
+OUTPUT(YinyangKMeansv4.Allresults, NAMED('YinyangKMeansv4_allresults'));                                       // The table that contains the results of each iteration
+OUTPUT(YinyangKMeansv4.Convergence, NAMED('YinyangKMeansv4_Iterations')); 
+
+
 lCompare := RECORD
 Types.NumericField.id;
 Types.NumericField.number;
 Boolean pass;
 END;
 
-result := JOIN(YinyangKMeans.Allresults,KMeans.Allresults,LEFT.id = RIGHT.id AND LEFT.number = RIGHT.number, TRANSFORM(lCompare, SELF.pass := IF(LEFT.values = RIGHT.values, TRUE, FALSE), SELF := LEFT;));
+//general compare
+result := JOIN(YinyangKMeansv23.Allresults,YinyangKMeansv4.Allresults,LEFT.id = RIGHT.id AND LEFT.number = RIGHT.number, TRANSFORM(lCompare, SELF.pass := IF(LEFT.values = RIGHT.values, TRUE, FALSE), SELF := LEFT;));
 OUTPUT(result, NAMED('resultscomparison'));
 
-// change the values to value
+//detail compare: change the values to value
+
+SHARED lIterations:=RECORD
+	TYPEOF(Types.NumericField.id) id;
+	TYPEOF(Types.NumericField.number) number;
+	SET OF TYPEOF(Types.NumericField.value) values;
+ END;
+Types.NumericField normalizerst(lIterations L, UNSIGNED c) := TRANSFORM
+  SELF.value := L.values[c];
+	SELF := L;
+END;
+
+ //normalize result
+rst_yinyangv23 := NORMALIZE(yinyangkmeansv23.allresults, YinyangKMeansv23.Convergence, normalizerst(LEFT, COUNTER)); 
+// rst := NORMALIZE(yinyangkmeans.allresults, iterations, TRANSFORM(Types.NumericField, SELF.value := LEFT.values[COUNTER],SELF := LEFT)); 
+OUTPUT(rst_yinyangv23, NAMED('rst_yinyangv23'));
+
+rst_yinyangv4 := NORMALIZE(yinyangkmeansv4.allresults, YinyangKMeansv4.Convergence, normalizerst(LEFT, COUNTER)); 
+// rst := NORMALIZE(yinyangkmeans.allresults, iterations, TRANSFORM(Types.NumericField, SELF.value := LEFT.values[COUNTER],SELF := LEFT)); 
+OUTPUT(rst_yinyangv4, NAMED('rst_yinyangv4'));
+
+detail_result_comparison := JOIN(rst_yinyangv23,rst_yinyangv4,LEFT.id = RIGHT.id AND LEFT.number = RIGHT.number, TRANSFORM(lCompare, SELF.pass := IF(LEFT.value = RIGHT.value, TRUE, FALSE), SELF := LEFT;));
+OUTPUT(detail_result_comparison, NAMED('detail_result_comparison'));

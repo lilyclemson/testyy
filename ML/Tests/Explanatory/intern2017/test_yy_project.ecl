@@ -1,23 +1,32 @@
 ﻿// YinyangKMEANS EXAMPLE
-//
+
 // Presents K-Means clustering in a 2-dimensional space. 100 data points
 // are initialized with random values on the x and y axes, and 4 centroids
 // are initialized with values assigned to be regular but non-symmetrical.
-//
+
 // The sample code shows how to determine the new coordinates of the
 // centroids after a user-defined set of iterations. Also shows how to
 // determine the "allegiance" of each data point after those iterations.
-//---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
 
-//YinyangKMeans testing file: summer intern 2017
+// YinyangKMeans testing file: summer intern 2017
 
 IMPORT ML;
+IMPORT ML.Types as Types;
+IMPORT ML.Mat as Mat;
 IMPORT excercise.irisset as irisset;
 IMPORT excercise.kegg;
 lMatrix:={UNSIGNED id;REAL x;REAL y;};
 
+
+SHARED lIterations:=RECORD
+	TYPEOF(Types.NumericField.id) id;
+	TYPEOF(Types.NumericField.number) number;
+	SET OF TYPEOF(Types.NumericField.value) values;
+ END;
+ 
 /***/
-//DP100
+// DP100
 dDocumentMatrix:=DATASET([
 {1,2.4639,7.8579},
 {2,0.5573,9.4681},
@@ -129,13 +138,13 @@ dCentroidMatrix:=DATASET([
 ],lMatrix);
 
 
-//iris
-//dDocumentMatrix := irisset.input;
-//dCentroidMatrix := irisset.input[1..3];
+// iris
+// dDocumentMatrix := irisset.input;
+// dCentroidMatrix := irisset.input[1..3];
 
-//KEGG
+// KEGG
 // dDocumentMatrix := kegg.input;
-// dCentroidMatrix := kegg.input[1..10];
+// dCentroidMatrix := kegg.input[1..4];
 
 ML.ToField(dDocumentMatrix,dDocuments);
 ML.ToField(dCentroidMatrix,dCentroids);
@@ -144,12 +153,30 @@ ML.ToField(dCentroidMatrix,dCentroids);
 // #WORKUNIT('name', 'YinyangKMeansV2:THOR::KEGG:30:0.3'); 
 // YinyangKMeans:=ML.onegroupfaster.YinyangKMeans(dDocuments,dCentroids,30,0.3);
 
-// #WORKUNIT('name', 'multigroup_debug:THOR::KEGG:30:0.3'); 
+// #WORKUNIT('name', 'multigroup_debug:THOR::DP100:30:0.3'); 
 // YinyangKMeans:=ML.yinyang.drafts.multigroup_debug.YinyangKMeans(dDocuments,dCentroids,30,0.3);
 
-#WORKUNIT('name', 'YinyangKMeansv4test:THOR::DP100:2:0.3'); 
-YinyangKMeans:=ML.yinyang.drafts.multigroup_debug.YinyangKMeans(dDocuments,dCentroids,2,0.3);
-OUTPUT(YinyangKMeans.Allresults, NAMED('YinyangKMeansAllresults'));                   
-OUTPUT(YinyangKMeans.Convergence, NAMED('YinyangKMeansTotal_Iterations')); 
-//OUTPUT(YinyangKMeans.Allegiances(), NAMED('YinyangKMeansAllegiances'));
+// #WORKUNIT('name', 'YinyangKMeansv4test:THOR::DP100:2:0.3'); 
+// YinyangKMeans:=ML.yinyang.drafts.multigroup_debug.YinyangKMeans(dDocuments,dCentroids,2,0.3);
 
+
+#WORKUNIT('name', 'YinyangKMeansv23:THOR::DP100:2:0.3'); 
+YinyangKMeans:=ML.yinyang.drafts.v2combinev3.YinyangKMeans(dDocuments,dCentroids,30,0.3);
+
+// #WORKUNIT('name', 'YinyangKMeansv4_test:THOR::DP100:30:0.3'); 
+// YinyangKMeans:=ML.yinyang.drafts.yinyangkmeansv4_test.YinyangKMeans(dDocuments,dCentroids,30,0.3);
+
+OUTPUT(YinyangKMeans.Allresults, NAMED('YinyangKMeansAllresults'));  
+iterations := YinyangKMeans.Convergence;                 
+OUTPUT(YinyangKMeans.Convergence, NAMED('YinyangKMeansTotal_Iterations')); 
+// OUTPUT(YinyangKMeans.Allegiances(), NAMED('YinyangKMeansAllegiances'));
+
+Types.NumericField normalizerst(lIterations L, UNSIGNED c) := TRANSFORM
+  SELF.value := L.values[c];
+	SELF := L;
+END;
+
+//normalize result
+rst := NORMALIZE(yinyangkmeans.allresults, iterations, normalizerst(LEFT, COUNTER)); 
+// rst := NORMALIZE(yinyangkmeans.allresults, iterations, TRANSFORM(Types.NumericField, SELF.value := LEFT.values[COUNTER],SELF := LEFT)); 
+OUTPUT(rst, NAMED('rst'));

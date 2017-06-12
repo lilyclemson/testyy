@@ -18,8 +18,8 @@ IMPORT excercise.uscensus as uscensus;
 
 lMatrix:={UNSIGNED id;REAL x;REAL y;};
 
-/**
-*/
+/***/
+
 //DP100
 dDocumentMatrix:=DATASET([
 {1,2.4639,7.8579},
@@ -137,7 +137,7 @@ dCentroidMatrix:=DATASET([
 
 //KEGG
 // dDocumentMatrix := kegg.input;
-// dCentroidMatrix := kegg.input[1..10];
+// dCentroidMatrix := kegg.input[1..4];
  
 //uscensus
 // dDocumentMatrix := uscensus.input;
@@ -166,8 +166,8 @@ ML.ToField(dCentroidMatrix,dCentroids);
 // KMeans:=ML.yinyang.drafts.multigroup_debug.KMeans(dDocuments,dCentroids,30,0.3);
 
 
-#WORKUNIT('name', 'KMeans:THOR:DP100:2:0.3'); 
-KMeans:=ML.yinyang.drafts.onegroupfaster_comp.KMeans(dDocuments,dCentroids,2,0.3);
+#WORKUNIT('name', 'KMeans:THOR:DP100:15:0.3'); 
+KMeans:=ML.yinyang.drafts.onegroupfaster_comp.KMeans(dDocuments,dCentroids,30,0.3);
  
 OUTPUT(KMeans.Allresults, NAMED('KMeansAllresults'));                                      
 //OUTPUT(KMeans.Convergence, NAMED('KMeansTotal_Iterations')); 
