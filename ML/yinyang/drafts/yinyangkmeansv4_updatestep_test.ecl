@@ -5,7 +5,10 @@
 // performing K-Means calculations.
 //-----------------------------------------------------------------------------
 
-//originally from cluster_gf_t1.ecl
+//Trying to add updatestep based on yinyangkmeansv4_localfilter.ecl (use its local filter) and yinyangkmeansv1.ecl (use its update step)
+//Version: still working on
+//create date: 0                                                                                                            
+
 
 IMPORT * FROM $;
 IMPORT Std.Str AS Str;
@@ -14,7 +17,7 @@ IMPORT ML.Types;
 IMPORT ML.Utils;
 IMPORT STD;
 
-EXPORT multigroup_debug := MODULE
+EXPORT yinyangkmeansv4_updatestep_test := MODULE
 
 	// Working structure for cluster distance logic
   SHARED ClusterPair:=RECORD
@@ -347,7 +350,7 @@ EXPORT multigroup_debug := MODULE
     fIterate(DATASET(lIterations) d,UNSIGNED c):=FUNCTION
       // Check the distance delta for the last two iterations.  If the highest
       // value is below the convergence threshold, then set bConverged to TRUE
-      KMeans_bConverged:=IF(c=1,FALSE,MAX(dDistanceDelta(c-1,c-2,d),value)<=nConverge);
+      bConverged:=IF(c=1,FALSE,MAX(dDistanceDelta(c-1,c-2,d),value)<=nConverge);
       // set the current centroids to the results of the most recent iteration
       dCentroids:=PROJECT(d,TRANSFORM(Types.NumericField,SELF.value:=LEFT.values[c];SELF:=LEFT;));
       // get all document-to-centroid distances, and determine centroid allegiance
@@ -368,22 +371,11 @@ EXPORT multigroup_debug := MODULE
       dAdded:=JOIN(d,dJoined+dPass,LEFT.id=RIGHT.id AND LEFT.number=RIGHT.number,TRANSFORM(lIterations,SELF.values:=LEFT.values+[RIGHT.value];SELF:=RIGHT;),RIGHT OUTER);
       // If the centroids have converged, simply pass the input dataset through
       // to the next iteration.  Otherwise perform an iteration.
-			
-			KMeans_action1 := OUTPUT(c, NAMED('KMeans_IterationNo'), OVERWRITE);
-      KMeans_action2 := OUTPUT(KMeans_bConverged,NAMED('KMeans_bConverged'), OVERWRITE);
-      KMeans_action3 := OUTPUT(dCentroids,NAMED('KMeans_dCentroids'),OVERWRITE);
-      KMeans_action4 := OUTPUT(dDistances, NAMED('KMeans_dDistances'), OVERWRITE);
-      KMeans_action5 := OUTPUT(dClosest, NAMED('KMeans_dClosest'), OVERWRITE);
-      KMeans_action6 := OUTPUT(dClusterCounts, NAMED('KMeans_dClusterCounts'), OVERWRITE);
-      KMeans_action7 := PARALLEL(	KMeans_action1, KMeans_action2, KMeans_action3, KMeans_action4, KMeans_action5, KMeans_action6);
-      KMeans_action8 := PARALLEL(OUTPUT(c, NAMED('IterationNo')),OUTPUT(dCentroids,NAMED('dCentroids')));
-			
-	  	RETURN WHEN(dAdded, KMeans_action7);
-      // RETURN IF(bConverged,d,dAdded);
+      RETURN IF(bConverged,d,dAdded);
     END;
     dIterationResults:=LOOP(d02Prep,n,fIterate(ROWS(LEFT),COUNTER));
     SHARED dIterations:=IF(iOffset>0,PROJECT(dIterationResults,TRANSFORM(lIterations,SELF.id:=LEFT.id-iOffset;SELF:=LEFT;)),dIterationResults):INDEPENDENT;
-// #option('outputlimit', 50);
+
     // Show the fully traced result set
     EXPORT lIterations AllResults:=dIterations;
     
@@ -514,7 +506,7 @@ EXPORT multigroup_debug := MODULE
   //              centroid allegiance.  Default is simple Euclidean.
   //---------------------------------------------------------------------------
 	EXPORT YinyangKMeans(DATASET(Types.NumericField) d01,DATASET(Types.NumericField) d02,UNSIGNED n=1,REAL nConverge=0.0,DF.Default fDist=DF.Euclidean):=MODULE
-		//Data structure of the input dataset of the LOOP function		
+		
 		SHARED lInput:=RECORD 
 		TYPEOF(Types.NumericField.id) id; // The id of each dataset 
 		TYPEOF(Types.NumericField.id) x;	
@@ -524,7 +516,6 @@ EXPORT multigroup_debug := MODULE
 		SET OF TYPEOF(Types.NumericField.value) values;
 		END;
 
-		//Transform input to algin with the input format
 		SHARED lInput transFormat(Mat.Types.Element input , UNSIGNED c) := TRANSFORM
 		SELF.id := c;
 		SELF.values := [input.value];
@@ -532,222 +523,206 @@ EXPORT multigroup_debug := MODULE
 		SELF.iter := 0;
 		SELF := input;
 		END;
+		
+		DATASET(Mat.Types.Element) SecondClosest(DATASET(Mat.Types.Element) inClosest,DATASET(Mat.Types.Element) inDistances ):= FUNCTION
+				noClosest := JOIN(inClosest,inDistances, LEFT.x = RIGHT.x AND LEFT.y = RIGHT.y, RIGHT ONLY);
+				RETURN Closest(noClosest);
+		END;
 
-		//Add an offset number to id if necessary to make sure all ids are different
-    SHARED iOffset:=IF(MAX(d01,id)>MIN(d02,id),MAX(d01,id),0);
-
-		// Convert the input centroid dataset to our internal structure, then
-    // iterate as many times as requested by the user.
-    // NOTE: Values will stop being added once convergence is determined
-    // to have been reached.
-    d02Prep:=PROJECT(d02,TRANSFORM(lIterations,SELF.id:=LEFT.id+iOffset;SELF.values:=[LEFT.value];SELF:=LEFT;));
-		// set the current centroids to the results of the most recent iteration
+	  SHARED iOffset:=IF(MAX(d01,id)>MIN(d02,id),MAX(d01,id),0);
+	  d02Prep:=PROJECT(d02,TRANSFORM(lIterations,SELF.id:=LEFT.id+iOffset;SELF.values:=[LEFT.value];SELF:=LEFT;));
 		dCentroid0 := PROJECT(d02Prep,TRANSFORM(Types.NumericField,SELF.value:=LEFT.values[1];SELF:=LEFT;));
-    
-		dDistances0 := Distances(d01,dCentroid0); // All the distances from each data points to each centroids
-		output_dDistances0 := OUTPUT(dDistances0, NAMED('YinyangKMeans_dDistances0'));
-		dUpperBound := Closest(dDistances0);// Filter out the distance from a data point to its best centroid.
-    
-/*
-        groupclose := GROUP(SORT(dDistances, x), x);
-		action0 := OUTPUT(groupclose, NAMED('groupclose'));
-		dUpperBound :=TOPN( groupclose,1, value);
-*/		
+		dDistances := Distances(d01,dCentroid0); 
+		output_dDistances0 := OUTPUT(dDistances, NAMED('YinyangKMeans_dDistances0'));
+		dUpperBound := Closest(dDistances);
+		output_dUpperBound := OUTPUT(dUpperBound, NAMED('dUpperBound'));
+		dDistancesSub := JOIN(dUpperBound,dDistances, LEFT.x = RIGHT.x AND LEFT.y = RIGHT.y,RIGHT ONLY);
 
-		//The number of centroids		
-		K := COUNT(d02)/2;
-		//The number of groups
+    K := COUNT(d02)/2;
     t:=2;
-		//The initial centroids of centroids
     temp := t * 2;
     tempDt := dCentroid0[1..temp];
 		nt := 5;
 		tConverge := 0.3;
     groupDs:=PROJECT(tempDt,TRANSFORM(Types.NumericField,SELF.id:=LEFT.id + k,SELF:=LEFT));
     KmeansDt := KMeans(dCentroid0,groupDs,nt,tConverge);
-		//groups
-    //the assignment of each centroid to a group	
-		Gt := TABLE(KmeansDt.Allegiances(), {x,y},y,x);
+
+		Gt := TABLE(KmeansDt.Allegiances(),{x,y},y,x);
 		output_Gt := OUTPUT(Gt, NAMED('Gt'));
 		output_groups := OUTPUT(KmeansDt.Allegiances(), NAMED('group'));
-		
-		//Initialize the lower bounds (lbs) of each data point
-		//Lower Bound: the distance from a data point to its second closest centroid.
-		//If t equals to one then each data point just have one lower bound.
-		//initiate dLowerBound
-		// dDistancesSub := JOIN(dDistances,dUpperBound, LEFT.x = RIGHT.x AND LEFT.y = RIGHT.y,LEFT ONLY);// Filter out the closest distances from all the distances
-    dDistancesSub := JOIN(dDistances0,dUpperBound, LEFT.x = RIGHT.x AND LEFT.y = RIGHT.y, LOOKUP, LEFT ONLY);
-		// dGroupDistancesSub := JOIN(dDistancesSub, Gt, LEFT.y = RIGHT.x, TRANSFORM(Mat.Types.Element,SELF.y := RIGHT.y, SELF := LEFT), LOOKUP);
-    // dGroupDistancesSub := GROUP(SORT(dDistancesSub, x), x);
-		// dLowerBound := TOPN( dGroupDistancesSub,1, value);
-		// dLowerBound := DEDUP(SORT(DISTRIBUTE(dGroupDistancesSub,x),x,y,value,LOCAL),x,y,LOCAL);;
-		// output_dLowerBound := OUTPUT(dLowerBound, named('dLowerBound'));
-		
-	 
+
     dGroupDistancesSub := SORT(JOIN(dDistancesSub, Gt, LEFT.y = RIGHT.x, TRANSFORM(Mat.Types.Element,SELF.y := RIGHT.y, SELF := LEFT)),x, y, value);		
 		dLowerBound := DEDUP(dGroupDistancesSub,LEFT.x = RIGHT.x AND LEFT.y = RIGHT.y);
     output_dLowerBound := OUTPUT(dLowerBound, NAMED('dLowerBound'));
-		//*********************************************************************************************************************************************************************
-		//Running Kmeans on d01 for just one iteration
-//		KmeansD01 := KMeans(d01,dCentroid0,1);
-//		//The result of first iteration
-//		dCentroids := KmeansD01.AllResults();//mark : change 'dCentoirds' -> 'dCentroids'************
-//		dCentroid1 := PROJECT(dCentroids,TRANSFORM(Types.NumericField,SELF.value:=LEFT.values[2];SELF:=LEFT;)); 
-dClusterCounts_ini:=TABLE(dUpperBound,{y;UNSIGNED c:=COUNT(GROUP);},y,FEW);
-dClustered_ini:=SORT(DISTRIBUTE(JOIN(d01,dUpperBound,LEFT.id=RIGHT.x,TRANSFORM(Types.NumericField,SELF.id:=RIGHT.y;SELF:=LEFT;),HASH),id),RECORD,LOCAL);
-dRolled_ini:=ROLLUP(dClustered_ini,TRANSFORM(Types.NumericField,SELF.value:=LEFT.value+RIGHT.value;SELF:=LEFT;),id,number,LOCAL);
-dJoined_ini:=JOIN(dRolled_ini,dClusterCounts_ini,LEFT.id=RIGHT.y,TRANSFORM(Types.NumericField,SELF.value:=LEFT.value/RIGHT.c;SELF:=LEFT;),LOOKUP);		
-dPass_ini:=JOIN(dCentroid0,TABLE(dJoined_ini,{id},id,LOCAL),LEFT.id=RIGHT.id,TRANSFORM(LEFT),LEFT ONLY,LOOKUP);
-dCentroid1 := dJoined_ini + dPass_ini;
 
-		//***********************************************8now Gt, ub, lbs are initialized ************************
-		//id of each dataset : 1-centroids, 2-ub, 3-lbs, 4-V. 
+		dClusterCounts_ini:=TABLE(dUpperBound,{y;UNSIGNED c:=COUNT(GROUP);},y,FEW);
+		dClustered_ini:=SORT(DISTRIBUTE(JOIN(d01,dUpperBound,LEFT.id=RIGHT.x,TRANSFORM(Types.NumericField,SELF.id:=RIGHT.y;SELF:=LEFT;),HASH),id),RECORD,LOCAL);
+		dRolled_ini:=ROLLUP(dClustered_ini,TRANSFORM(Types.NumericField,SELF.value:=LEFT.value+RIGHT.value;SELF:=LEFT;),id,number,LOCAL);
+		dJoined_ini:=JOIN(dRolled_ini,dClusterCounts_ini,LEFT.id=RIGHT.y,TRANSFORM(Types.NumericField,SELF.value:=LEFT.value/RIGHT.c;SELF:=LEFT;),LOOKUP);		
+		dPass_ini:=JOIN(dCentroid0,TABLE(dJoined_ini,{id},id,LOCAL),LEFT.id=RIGHT.id,TRANSFORM(LEFT),LEFT ONLY,LOOKUP);
+		dCentroid1 := dJoined_ini + dPass_ini;
+		
+ 
 		dCentroidPrep := PROJECT(dCentroid0, TRANSFORM(Mat.Types.Element, SElF.value := LEFT.value ; SELF.x := LEFT.id; SELF.y := LEFT.number));
 		dCentroidPrepTemp := PROJECT(dCentroidPrep, transFormat(LEFT, 1));
 		dCentroidsPrep := JOIN(dCentroidPrepTemp, dCentroid1, LEFT.x = RIGHT.id AND LEFT.y = RIGHT.number, TRANSFORM(lInput, SELF.values := LEFT.values + [RIGHT.value]; SELF := LEFT;));
 		dUbPrep := PROJECT(dUpperBound, transFormat(LEFT, 2));
 		dLbsPrep := PROJECT(dLowerBound, transFormat(LEFT, 3));
-
-		//Input dataset of LOOP function. It contains four datasets with different dataset id: 
-		// 1: centroids, 2: ub, 3:lbs, 4:V
-		dInput := dCentroidsPrep + dUbPrep + dLbsPrep;
-
-		//Function that get the distances from a data point to its second closest centroid
-		DATASET(Mat.Types.Element) SecondClosest(DATASET(Mat.Types.Element) inClosest,DATASET(Mat.Types.Element) inDistances ):= FUNCTION
-				noClosest := JOIN(inClosest,inDistances, LEFT.x = RIGHT.x AND LEFT.y = RIGHT.y, RIGHT ONLY);
-				RETURN Closest(noClosest);
-		END;
+//%%%%%%%%%% code added for v4_update
+    dClusterCounts := TABLE(dUpperBound, {y; UNSIGNED c := COUNT(GROUP);},y );
+		dClusterCountsPrep := PROJECT(PROJECT(dClusterCounts, TRANSFORM(Mat.Types.Element, SELF.x := LEFT.y; SELF.y := LEFT.c; SELF.value := 0; )), transFormat(LEFT, 4));
+		dInput := dCentroidsPrep + dUbPrep + dLbsPrep + dClusterCountsPrep;
 		
-		//********************************************start iterations*************************************************
-		// The Loop function that will iterate as many times as requested by the user.
-    // NOTE: Values will stop being added once convergence is determined to have been reached.	
+		
 		lInput fIterate(DATASET(lInput) d,UNSIGNED c):=FUNCTION	
-					//Extract four datasets from the inputset d in 'lIterations' format
-			dAddedx1 := PROJECT(d(id = 1), TRANSFORM(lIterations , SELF.id := LEFT. x; SELF.number:= LEFT.y; SELF.values := LEFT.values;));
-			iUb := TABLE(d(id = 2), {x;y;values;});
-			iLbs := TABLE(d(id = 3), {x;y;values;});
+		  action0 := OUTPUT(c, NAMED('iteration'));
+ 			dCentroidsIn := PROJECT(d(id = 1), TRANSFORM(lIterations , SELF.id := LEFT. x; SELF.number:= LEFT.y; SELF.values := LEFT.values;));					
+			dUbIn := TABLE(d(id = 2), {x;y;values;});
+			dLbsIn := TABLE(d(id = 3), {x;y;values;});
+			dCentroidIn := PROJECT(dCentroidsIn,TRANSFORM(Types.NumericField,SELF.value:=LEFT.values[c+1];SELF:=LEFT;));
+//%%%%%%%%%  code added for v4_update
+			dClusterCountsIn := TABLE(d(id = 4), {x;y;values;});
+			dClusterCountItr := PROJECT(d(id = 4), TRANSFORM(Mat.Types.Element, SELF.value := LEFT.values[c]; SELF := LEFT;));
 			
-			dCentroidIn := PROJECT(dAddedx1,TRANSFORM(Types.NumericField,SELF.value:=LEFT.values[c+1];SELF:=LEFT;));
-			ub0 := PROJECT(d(id = 2), TRANSFORM(Mat.Types.Element, SELF.value := LEFT.values[c]; SELF := LEFT;));
-			action1 := OUTPUT(SORT(ub0,x), NAMED('YinyangKMeans_ub0'));
-			lbs0 := PROJECT(d(id = 3), TRANSFORM(Mat.Types.Element, SELF.value := LEFT.values[c]; SELF := LEFT;));
-			action2 :=OUTPUT(SORT(lbs0,x), NAMED('YinyangKMeans_lbs0'));
-           
-			//calculate the deltaC
-			deltac1 := dDistanceDelta(c,c-1,dAddedx1);
-			action3 :=OUTPUT(deltac1,NAMED('YinyangKMeans_deltac1'));
+			dUbItr := PROJECT(d(id = 2), TRANSFORM(Mat.Types.Element, SELF.value := LEFT.values[c]; SELF := LEFT;));
+			action1 := OUTPUT(dUbItr, NAMED('YinyangKMeans_dUbItr'));
+			dLbsItr := PROJECT(d(id = 3), TRANSFORM(Mat.Types.Element, SELF.value := LEFT.values[c]; SELF := LEFT;));
+			action2 :=OUTPUT(dLbsItr, NAMED('YinyangKMeans_dLbsItr'));
+
+			dDeltaC := dDistanceDelta(c,c-1,dCentroidsIn, fDist);
+			action3 :=OUTPUT(dDeltaC,NAMED('YinyangKMeans_dDeltaC'));
+
+			deltaG1 := MAX(dDeltaC, value);
+			action4 :=OUTPUT(deltaG1,NAMED('YinyangKMeans_deltaG1'));
+
+			dGroupDeltaC :=JOIN(dDeltaC, Gt, LEFT.id = RIGHT.x, TRANSFORM(Mat.Types.Element,SELF.value := LEFT.value; SELF := RIGHT;));
+			output_dGroupDeltaC := OUTPUT(dGroupDeltaC, NAMED('dGroupDeltaC'));
+			dDeltaG := DEDUP(SORT(dGroupDeltaC,y,value),y,RIGHT);
+			action5 :=OUTPUT(dDeltaG,NAMED('YinyangKMeans_dDeltaG')); 
+
+			dUbGroupFilter := JOIN(dUbItr, dDeltaC, LEFT.y = RIGHT.id, TRANSFORM(Mat.Types.Element, SElF.value := LEFT.value + RIGHT.value; SELF := LEFT;));
+      action6 :=OUTPUT(dUbGroupFilter, NAMED('YinyangKMeans_dUbGroupFilter'));
+
+      dLbsGroupFilter := JOIN(dLbsItr, dDeltaG, LEFT.y = RIGHT.y , TRANSFORM(Mat.Types.Element, SELF.value := LEFT.value - RIGHT.value; SELF := LEFT), LOOKUP);
+      action7 :=OUTPUT(dLbsGroupFilter, NAMED('YinyangKMeans_dLbsGroupFilter'));			
+	
+			groupFilter := DEDUP(JOIN(dUbGroupFilter, dLbsGroupFilter,LEFT.x = RIGHT.x AND RIGHT.value - LEFT.value < 0, TRANSFORM({UNSIGNED4 x}, SELF.x := LEFT.x)),x);
+      action8 :=OUTPUT(groupFilter, NAMED('YinyangKMeansv4_groupFilter'));	
+      
+
+			dLbs_lf := JOIN(dLbsItr, groupfilter, LEFT.x = RIGHT.x, TRANSFORM(LEFT), LOOKUP);//looks ok
+			action9 :=OUTPUT(dLbs_lf, NAMED('YinyangKMeansv4_dLbs_lf'));
+			lemma2_l_glb := DEDUP(SORT(dLbs_lf, x,value), x);//looks okay
+			action10 :=OUTPUT(lemma2_l_glb, NAMED('YinyangKMeansv4_lemma2_l_glb'));
+      lemma2_r :=JOIN(dLbs_lf, dGroupDeltaC, LEFT.y = RIGHT.y, TRANSFORM(Mat.Types.Element, SELF.y := RIGHT.x ,SELF.value := LEFT.value - RIGHT.value, SELF := LEFT));
+      action11 :=OUTPUT(lemma2_r, NAMED('YinyangKMeansv4_llemma2_r'));    
+      lemma2 := DEDUP(SORT(JOIN(lemma2_r, lemma2_l_glb, LEFT.x = RIGHT.x AND LEFT.value <= RIGHT.value, TRANSFORM(LEFT), LOOKUP),x),x);	      
+			action12 :=OUTPUT(lemma2, NAMED('YinyangKMeansv4_lemma2'));			
 		
-			//get deltaG1
-			//group deltacg by Gt: first JOIN(deltaC with Gt) then group by Gt
-			deltaG1 := MAX(deltac1, value);
-			action5 :=OUTPUT(deltaG1,NAMED('YinyangKMeans_deltaG1')); 
-       
-       
-      bConverged:=IF(c=1,FALSE, deltaG1<=nConverge);
-			//update ub0 and lbs0
-			ub1_temp := JOIN(ub0, deltac1, LEFT.y = RIGHT.id, TRANSFORM(Mat.Types.Element, SElF.value := LEFT.value + RIGHT.value; SELF := LEFT;));
-			action6 :=OUTPUT(ub1_temp, NAMED('YinyangKMeans_ub1_temp'));
+			dLocalFilter := JOIN(d01,lemma2, LEFT.id = RIGHT.x,TRANSFORM(LEFT));
+			action13 :=OUTPUT(dLocalFilter, NAMED('YinyangKMeansv4_dLocalFilter'));
+					
+			dDistancesLocalFilter := Distances(dLocalFilter,dCentroidIn);
+			action14 :=OUTPUT(dDistancesLocalFilter, NAMED('YinyangKMeansv4_dDistancesLocalFilter'));
+			dClosestLocalFilter := Closest(dDistancesLocalFilter);
+			action15 :=OUTPUT(dClosestLocalFilter, NAMED('YinyangKMeansv4_dClosestLocalFilter'));
+	    LocalFilter := JOIN(dClosestLocalFilter,dUbItr, LEFT.x = RIGHT.x AND LEFT.y !=RIGHT.y, TRANSFORM(LEFT), LOOKUP, FEW);
+      action16 :=OUTPUT(LocalFilter, NAMED('YinyangKMeansv4_LocalFilter'));			
+			dUbLocalFilter := JOIN(dUbItr, LocalFilter, LEFT.x = RIGHT.x, TRANSFORM(LEFT), LEFT ONLY);
+			action17 :=OUTPUT(dUbLocalFilter, NAMED('YinyangKMeansv4_dUbLocalFilter'));	
+			dMap := PROJECT(dUbLocalFilter, TRANSFORM(ClusterPair, SELF.id := LEFT.x; SELF.clusterid := LEFT.y;SELF.number := 0; SELF.value01 := LEFT.value; SELF.value02 := 0; SELF.value03 := 0;));		
+      action18 :=OUTPUT(dMap, NAMED('YinyangKMeansv4_dMap'));			
+			dMappedDistances := MappedDistances(d01,dCentroidIn,fDist,dMap);
+			action19 :=OUTPUT(dMappedDistances, NAMED('YinyangKMeansv4_dMappedDistances'));	
 			
-      //?? Do i really need ABS() here??
-			lbs1_temp := PROJECT(lbs0,TRANSFORM(Mat.Types.Element, SELF.value := ABS(LEFT.value - deltaG1); SELF := LEFT));
-			action7 :=OUTPUT(lbs1_temp, NAMED('YinyangKMeans_lbs1_temp'));
-			
-//            dMapa1 := PROJECT(ub0, TRANSFORM(ClusterPair, SELF.id := LEFT.x; SELF.clusterid := LEFT.y; SELF.number := 0; SELF.value01 := LEFT.value; SELF.value02 := 0; SELF.value03 := 0;));		
-//			ub1_changed_temp := MappedDistances(d01,dCentroidIn,fDist,dMapa1);	
-//			action8 :=OUTPUT(ub1_changed_temp);			
-						
-			// groupfilter1	
-            groupFilter1 := JOIN(lbs1_temp, ub1_temp,LEFT.x = RIGHT.x AND (LEFT.value < RIGHT.value), TRANSFORM(Mat.Types.Element, SELF := RIGHT));	
-            action9 :=OUTPUT(groupFilter1, NAMED('groupFilter1'));	
-            
-//            dMapa1 := PROJECT(groupFilter1, TRANSFORM(ClusterPair, SELF.id := LEFT.x; SELF.clusterid := LEFT.y; SELF.number := 0; SELF.value01 := LEFT.value; SELF.value02 := 0; SELF.value03 := 0;));		
-//			ub1_changed_temp := MappedDistances(d01,dCentroidIn,fDist,dMapa1);	
-//			action8 :=OUTPUT(ub1_changed_temp);		
-			
-			changeSet1 := JOIN(d01, groupFilter1, LEFT.id = RIGHT.x, TRANSFORM(LEFT));		
-            action10 :=OUTPUT(changeSet1, NAMED('changeSet1'));		
-            	
-			dMappedDistancesb1 := Distances(changeSet1,dCentroidIn,fDist);	
-			action11 :=OUTPUT(dMappedDistancesb1, NAMED('dMappedDistancesb1'));	
-				
-				//old best c all    groupfilter
-			ub1_changed_old := JOIN(dMappedDistancesb1, groupFilter1, LEFT.x = RIGHT.x AND LEFT.y = RIGHT.y, TRANSFORM(LEFT));
-				//new best c all	groupfilter
-			ub1_changed_final := Closest(dMappedDistancesb1);
-			action12 :=OUTPUT(ub1_changed_final, NAMED('ub1_changed_final'));
-			
-//			ub1_changed := JOIN(ub1_changed_temp, ub1_changed_final, LEFT.x = RIGHT.x AND LEFT.value > RIGHT.value, TRANSFORM(Mat.Types.Element, SELF := RIGHT;));
-//			action13 :=OUTPUT(ub1_changed, NAMED('ub1_changed'));
-
-			ub1_changed:= JOIN(ub1_changed_old, ub1_changed_final, LEFT.x = RIGHT.x AND LEFT.value > RIGHT.value, TRANSFORM(Mat.Types.Element, SELF := RIGHT;));
-			action13 :=OUTPUT(ub1_changed, NAMED('ub1_changed'));
+			dUbUpdate:= LocalFilter + dMappedDistances;
+			action20 :=OUTPUT(SORT(dUbUpdate,x), NAMED('YinyangKMeansv4_dUbUpdate'));
 			
 
-//			ub1_unchanged := JOIN(ub1_changed_temp, ub1_changed, LEFT.x = RIGHT.x, TRANSFORM(LEFT),LEFT ONLY);
-//			action14 :=OUTPUT(ub1_unchanged, NAMED('ub1_unchanged'));
-			
-			ub1_unchanged_temp := JOIN(ub1_temp, ub1_changed, LEFT.x = RIGHT.x, TRANSFORM(LEFT),LEFT ONLY);
-			action14 :=OUTPUT(ub1_unchanged_temp, NAMED('ub1_unchanged_temp'));
-			
-			dMapa1 := PROJECT(ub1_unchanged_temp, TRANSFORM(ClusterPair, SELF.id := LEFT.x; SELF.clusterid := LEFT.y; SELF.number := 0; SELF.value01 := LEFT.value; SELF.value02 := 0; SELF.value03 := 0;));		
-			ub1_unchanged:= MappedDistances(d01,dCentroidIn,fDist,dMapa1);	
-			action8 :=OUTPUT(ub1_unchanged);	
-			
-			ub1 := SORT(ub1_changed + ub1_unchanged, x, y, value);
-            action15 :=OUTPUT(ub1, NAMED('YinyangKMeans_ub1'));	
-            
-			//updating lb
-		            					
-			lbs1_changed_temp := JOIN(dMappedDistancesb1, ub1_changed, LEFT.x = RIGHT.x, TRANSFORM(Mat.Types.Element, SELF := LEFT;));
-			action16 :=OUTPUT(lbs1_changed_temp, NAMED('lbs1_changed_temp'));
-			
-			lbs1_changed_temp1 := JOIN(lbs1_changed_temp, ub1_changed, LEFT.x = RIGHT.x AND LEFT.y = RIGHT.y, TRANSFORM(LEFT), LEFT ONLY);
-			action17 :=OUTPUT(lbs1_changed_temp1, NAMED('lbs1_changed_temp1'));
-			
-			lbs1_changed_temp2:= GROUP(SORT(lbs1_changed_temp1, x), x);
-			action18 :=OUTPUT(lbs1_changed_temp2, NAMED('lbs1_changed_temp2'));
-			
-			lbs1_changed := TOPN( lbs1_changed_temp2,1, value);
-			action19 :=OUTPUT(lbs1_changed, NAMED('lbs1_changed'));
+			dLbsLocalFilter := JOIN(LocalFilter,dDistancesLocalFilter, LEFT.x = RIGHT.x , TRANSFORM(RIGHT),RIGHT ONLY);
+			dGroupLbsLocalFilter := SORT(JOIN(dLbsLocalFilter, Gt, LEFT.y = RIGHT.x, TRANSFORM(Mat.Types.Element,SELF.y := RIGHT.y, SELF := LEFT)),x, y, value);		
+		  dGroupLbsUpdate := DEDUP(dGroupLbsLocalFilter,LEFT.x = RIGHT.x AND LEFT.y = RIGHT.y);      
 
-//			lbs1_changed := SecondClosest(ub1_changed, lbs1_changed_temp);
+
+			dLbsUpdate := JOIN(dLbsGroupFilter, dGroupLbsUpdate,LEFT.x = RIGHT.x AND LEFT.y = RIGHT.y, TRANSFORM(Mat.Types.Element, SELF.value := IF( RIGHT.value = 0,LEFT.value, RIGHT.value), SELF.y := IF( RIGHT.value = 0,LEFT.y, RIGHT.y), SELF := LEFT;), LEFT OUTER, LOOKUP );
+      action21 :=OUTPUT(SORT(dLbsUpdate,x), NAMED('YinyangKMeansv4_dLbsUpdate'));
+
+
+//%%%%%%%%%%% code added to v4_update
+					//Calculate Vin: the number of data points who move into a new cluster					
+					dClusterCountsVin:=TABLE(LocalFilter, {y; INTEGER c := COUNT(GROUP)},y);
+					// Join closest to the document set and replace the id with the centriod id
+					dClusteredVin := JOIN(d01, LocalFilter, LEFT.id = RIGHT.x,TRANSFORM(Types.NumericField,SELF.id:=RIGHT.y;SELF:=LEFT;));
+					// Now roll up on centroid ID, summing up the values for each axis
+					dRolledVin:=ROLLUP(SORT(dClusteredVin,id, number),LEFT.number = RIGHT.number,TRANSFORM(Types.NumericField,SELF.value:=LEFT.value+RIGHT.value;SELF:=LEFT;));
+					
+					//Calculate Vout: the number of data points who move out a cluster
+					VoutSet := JOIN(dUbGroupFilter, LocalFilter, LEFT.x = RIGHT.x, TRANSFORM(LEFT));
+					dClusterCountsVout:=TABLE(VoutSet, {y; INTEGER c := COUNT(GROUP)},y);
+					//Join closest to the document set and replace the id with the centriod id
+					dClusteredVout := JOIN(d01,VoutSet, LEFT.id = RIGHT.x,TRANSFORM(Types.NumericField,SELF.id:=RIGHT.y;SELF:=LEFT;));
+					// Now roll up on centroid ID, summing up the values for each axis
+					dRolledVout:=ROLLUP(SORT(dClusteredVout,id, number),LEFT.number = RIGHT.number,TRANSFORM(Types.NumericField,SELF.value:=LEFT.value+RIGHT.value;SELF:=LEFT;));
+
+					//Update V to get the new cluster counts 
+					dClusterCountsV :=JOIN(dClusterCountItr,dClusterCountsVin, LEFT.x = RIGHT.y, TRANSFORM(RECORDOF(LEFT), SELF.y := LEFT.y +RIGHT.c; SELF.value := LEFT.value + RIGHT.c; SELF := LEFT;), LEFT OUTER );
+					dClusterCountsUpdate:=JOIN(dClusterCountsV,dClusterCountsVout, LEFT.x = RIGHT.y, TRANSFORM(RECORDOF(LEFT), SELF.y := LEFT.y -RIGHT.c;SELF.value := LEFT.value -RIGHT.c; SELF := LEFT;), LEFT OUTER);
+					
+					//Join to cluster counts to calculate the new average on each axis
+					dClustered :=JOIN(dCentroidIn, dClusterCountItr, LEFT.id = RIGHT.x, TRANSFORM(RECORDOF(LEFT), SELF.value := LEFT.value * RIGHT.y; SELF := LEFT), LEFT OUTER);
+					//Add Vin 
+					dRolled := JOIN(dClustered, dRolledVin, LEFT.id = RIGHT.id AND LEFT.number = RIGHT.number, TRANSFORM(RECORDOF(LEFT), SELF.value := LEFT.value + RIGHT.value; SELF := LEFT), LEFT OUTER);
+					//Minus Vout
+					dJoined:= JOIN(dRolled, dRolledVout, LEFT.id = RIGHT.id AND LEFT.number = RIGHT.number, TRANSFORM(RECORDOF(LEFT), SELF.value := LEFT.value - RIGHT.value; SELF := LEFT), LEFT OUTER);
+					//New C
+					dCentroidOut:=JOIN(dJoined,dClusterCountsUpdate,LEFT.id=RIGHT.x,TRANSFORM(RECORDOF(LEFT),SELF.value:=(LEFT.value/RIGHT.y);SELF:=LEFT;), LEFT OUTER);
+/*
+					//Calculate Vin: the number of data points who move into a new cluster					
+					dClusterCountsVin:=TABLE(LocalFilter, {y; INTEGER c := COUNT(GROUP)},y);
+					
+					// Join closest to the document set and replace the id with the centriod id
+					dClusteredVin := JOIN(d01, LocalFilter, LEFT.id = RIGHT.x,TRANSFORM(Types.NumericField,SELF.id:=RIGHT.y;SELF:=LEFT;));
+					// Now roll up on centroid ID, summing up the values for each axis
+					dRolledVin:=ROLLUP(SORT(dClusteredVin,id, number),LEFT.number = RIGHT.number,TRANSFORM(Types.NumericField,SELF.value:=LEFT.value+RIGHT.value;SELF:=LEFT;));
+					
+					//Calculate Vout: the number of data points who move out a cluster
+					VoutSet := JOIN(dUbGroupFilter, LocalFilter, LEFT.x = RIGHT.x, TRANSFORM(LEFT));
+					dClusterCountsVout:=TABLE(VoutSet, {y; INTEGER c := COUNT(GROUP)},y);
+					//Join closest to the document set and replace the id with the centriod id
+					dClusteredVout := JOIN(d01,VoutSet, LEFT.id = RIGHT.x,TRANSFORM(Types.NumericField,SELF.id:=RIGHT.y;SELF:=LEFT;));
+					// Now roll up on centroid ID, summing up the values for each axis
+					dRolledVout:=ROLLUP(SORT(dClusteredVout,id, number),LEFT.number = RIGHT.number,TRANSFORM(Types.NumericField,SELF.value:=LEFT.value+RIGHT.value;SELF:=LEFT;));
+
+					//Update V to get the new cluster counts 
+					dClusterCountsV :=JOIN(dClusterCountItr,dClusterCountsVin, LEFT.x = RIGHT.y, TRANSFORM(RECORDOF(LEFT), SELF.y := LEFT.y +RIGHT.c; SELF.value := LEFT.value + RIGHT.c; SELF := LEFT;), LEFT OUTER );
+					dClusterCountsUpdate:=JOIN(dClusterCountsV,dClusterCountsVout, LEFT.x = RIGHT.y, TRANSFORM(RECORDOF(LEFT), SELF.y := LEFT.y -RIGHT.c;SELF.value := LEFT.value -RIGHT.c; SELF := LEFT;), LEFT OUTER);
+					
+					//Join to cluster counts to calculate the new average on each axis
+					dClustered :=JOIN(dCentroidIn, dClusterCountItr, LEFT.id = RIGHT.x, TRANSFORM(RECORDOF(LEFT), SELF.value := LEFT.value * RIGHT.y; SELF := LEFT), LEFT OUTER);
+					//Add Vin 
+					dRolledin := JOIN(dClustered, dRolledVin, LEFT.id = RIGHT.id AND LEFT.number = RIGHT.number, TRANSFORM(RECORDOF(LEFT), SELF.value := LEFT.value + RIGHT.value; SELF := LEFT), LEFT OUTER);
+					//Minus Vout
+					dRolledout:= JOIN(dRolledin, dRolledVout, LEFT.id = RIGHT.id AND LEFT.number = RIGHT.number, TRANSFORM(RECORDOF(LEFT), SELF.value := LEFT.value - RIGHT.value; SELF := LEFT), LEFT OUTER);
+					//New C
+					dJoined:=JOIN(dRolledout,dClusterCountsUpdate,LEFT.id=RIGHT.x,TRANSFORM(RECORDOF(LEFT),SELF.value:=(LEFT.value/RIGHT.y);SELF:=LEFT;), LEFT OUTER);
+          dPass :=JOIN(dCentroidIn,TABLE(dJoined,{id},id,LOCAL),LEFT.id=RIGHT.id,TRANSFORM(LEFT),LEFT ONLY);
+					dCentroid2 := SORT(dPass + dJoined, id);
+*/
+					bConverged := IF( MAX(dDeltaC,value)<= nConverge OR COUNT(groupFilter)=0 OR COUNT(LocalFilter) =0,  TRUE, FALSE );
+					newCsTemp := JOIN(dCentroidsIn, dCentroid2, LEFT.id = RIGHT.id AND LEFT.number=RIGHT.number,TRANSFORM(lIterations,SELF.values:=LEFT.values+[RIGHT.value];SELF:=LEFT;));
+					dCentroidsOut := PROJECT(newCsTemp, TRANSFORM(lInput,SELF.id := 1;SELF.values:=LEFT.values;SELF.y := LEFT.number; SELF.x:=LEFT.id;SELF.converge := bConverged; SELF.iter := c;));					
+					dUbOut := JOIN(dUbIn, dUbUpdate, LEFT.x = RIGHT.x ,TRANSFORM(lInput,SELF.id := 2;SELF.values:=LEFT.values+[RIGHT.value];SELF.y := RIGHT.y;SELF.converge := bConverged; SELF.iter := c; SELF:=LEFT;));
+					dLbsOut := JOIN(dLbsIn, dLbsUpdate, LEFT.x = RIGHT.x and LEFT.y = RIGHT.y ,TRANSFORM(lInput,SELF.id := 3;SELF.values:=LEFT.values+[RIGHT.value];SELF.y := RIGHT.y; SELF.converge := bConverged; SELF.iter := c;SELF:=LEFT;));
+					SHARED dOutput := dCentroidsOut+ dUbOut + dLbsOut;
 			
-			lbs1_unchanged:= JOIN(lbs1_temp, lbs1_changed, LEFT.x = RIGHT.x, LEFT ONLY);
-            action20 :=OUTPUT(lbs1_unchanged, NAMED('lbs1_unchanged'));
-//           
-//           lbs1:= JOIN(lbs1_temp, lbs1_changed,LEFT.x = RIGHT.x, TRANSFORM(Mat.Types.Element, SELF.value := IF( RIGHT.value = 0,LEFT.value, RIGHT.value), SELF := LEFT;), LEFT OUTER );
-		   lbs1 := lbs1_unchanged + lbs1_changed;			
-		   action21 :=OUTPUT(lbs1, NAMED('YinyangKMeans_lbs1'));
-           dClusterCounts1:=TABLE(ub1,{y;UNSIGNED c:=COUNT(GROUP);},y,FEW);
-		   action22 :=OUTPUT(dClusterCounts1, NAMED('YinyangKMeans_dClusterCounts'));
-			
-	        // Join closest to the document set and replace the id with the centriod id
-	        dClustered1:=SORT(DISTRIBUTE(JOIN(d01,ub1,LEFT.id=RIGHT.x,TRANSFORM(Types.NumericField,SELF.id:=RIGHT.y;SELF:=LEFT;),HASH),id),RECORD,LOCAL);
-	        // Now roll up on centroid ID, summing up the values for each axis
-	        dRolled1:=ROLLUP(dClustered1,TRANSFORM(Types.NumericField,SELF.value:=LEFT.value+RIGHT.value;SELF:=LEFT;),id,number,LOCAL);
-	        // Join to cluster counts to calculate the new average on each axis
-	        dJoined1:=JOIN(dRolled1,dClusterCounts1,LEFT.id=RIGHT.y,TRANSFORM(Types.NumericField,SELF.value:=LEFT.value/RIGHT.c;SELF:=LEFT;),LOOKUP);
-	        // Find any centroids with no document allegiance and pass those through also
-		    dPass1:=JOIN(dCentroidIn,TABLE(dJoined1,{id},id,LOCAL),LEFT.id=RIGHT.id,TRANSFORM(LEFT),LEFT ONLY,LOOKUP);
-			  dCentroid2 := SORT(dPass1 + dJoined1, id);
-            action23 := OUTPUT(dCentroid2, NAMED('YinyangKMeans_dCentroid2'));  
-            action00 := OUTPUT(c, NAMED('Yiyang_IterationNo'));    
-            action := PARALLEL(action00, output_dDistances0,output_Gt, output_groups,action1,action2, action3,action7,action9,action13,action15,action16,action17,action18,action19,action21,action22,action23);
-//          bConverged:=IF(c=1,FALSE, MAX(deltac1,value)<=nConverge OR COUNT(groupFilter1)=0 OR COUNT(ub1_changed) =0);
-            
-            
-            newCsTemp := JOIN(dAddedx1, dCentroid2, LEFT.id = RIGHT.id AND LEFT.number=RIGHT.number,TRANSFORM(lIterations,SELF.values:=LEFT.values+[RIGHT.value];SELF:=LEFT;));
-			dCentroidsOut := PROJECT(newCsTemp, TRANSFORM(lInput,SELF.id := 1;SELF.values:=LEFT.values;SELF.y := LEFT.number; SELF.x:=LEFT.id; SELF.converge := bConverged; SELF.iter := c;));					
-			dUbOut := JOIN(iUb, ub1, LEFT.x = RIGHT.x ,TRANSFORM(lInput,SELF.id := 2;SELF.values:=LEFT.values+[RIGHT.value];SELF.y := RIGHT.y; SELF.converge := bConverged;SELF.iter := c;SELF:=LEFT;));
-			dLbsOut := JOIN(iLbs, lbs1, LEFT.x = RIGHT.x ,TRANSFORM(lInput,SELF.id := 3;SELF.values:=LEFT.values+[RIGHT.value];SELF.converge := bConverged;SELF.iter := c; SELF:=LEFT;));
-			//Combine all updated sub-datasets as the output dataset for next iteration
-			dOutput := dCentroidsOut+ dUbOut + dLbsOut;
-			RETURN WHEN(dOutput, action);
+			// action := PARALLEL(output_dDistances0, output_dUpperBound, output_Gt, output_groups, output_dLowerBound, action0,action1,action2, action3,action4,action5,action6,action7,action8,action9,action10,action11,action12,action13,action14,action15,action16,action17,action18,action19,action20,action21,action22,action23);
+			action := PARALLEL(output_dDistances0, output_dUpperBound, output_Gt, output_groups, output_dLowerBound, action0,action1,action2, action3,action4,output_dGroupDeltaC,action5,action6,action7,action8,action9,action10,action11,action12,action13,action14,action15,action16,action17,action18,action19,action20,action21);
+			// action := PARALLEL(action8,action9,action10,action11,action12,action13);	
 			// RETURN dOutput;
-
+			RETURN WHEN(dOutput, action);
 		END;
-		SHARED dIterationResults :=LOOP(dInput,LEFT.converge = False AND COUNTER <= n-1,fIterate(ROWS(LEFT),COUNTER));
-		SHARED dResults := TABLE(dIterationResults(id=1), {x, TYPEOF(Types.NumericField.number) number := y, values});
+		dIterationResults :=LOOP(dInput,LEFT.converge = False AND COUNTER <= n - 1,fIterate(ROWS(LEFT),COUNTER));
+		dResults := TABLE(dIterationResults(id=1), {x, TYPEOF(Types.NumericField.number) number := y, values});
 		SHARED dIterations:=IF(iOffset>0,PROJECT(dResults,TRANSFORM(lIterations,SELF.id:=LEFT.x-iOffset;SELF.number :=LEFT.number; SELF := LEFT;)),dResults):INDEPENDENT;
 
 		//Show the fully traced result set
@@ -755,7 +730,8 @@ dCentroid1 := dJoined_ini + dPass_ini;
 		
 		// The number of iterations upon which convergence was reached is simply
     // one less than the number of values in any of the dIterations rows
-    EXPORT UNSIGNED Convergence:=dIterationResults[1].iter + 1; // plus one is because the first iteration already completed in the initialization part.		
+    EXPORT UNSIGNED Convergence:=COUNT(dIterations[1].values)-1;
+		
 		// Specific-instance exports for the SHARED attributes at the top of
     // the KMeans module (with d assumed to be the iterated results). 
     EXPORT Types.NumericField Result(UNSIGNED n=Convergence,DATASET(lIterations) d=dIterations):=dResult(MIN(Convergence,n),d);

@@ -1,29 +1,11 @@
-﻿// YinyangKMEANS EXAMPLE
-
-// Presents K-Means clustering in a 2-dimensional space. 100 data points
-// are initialized with random values on the x and y axes, and 4 centroids
-// are initialized with values assigned to be regular but non-symmetrical.
-
-// The sample code shows how to determine the new coordinates of the
-// centroids after a user-defined set of iterations. Also shows how to
-// determine the "allegiance" of each data point after those iterations.
-// ---------------------------------------------------------------------------
-
-// YinyangKMeans testing file: summer intern 2017
-
-IMPORT ML;
+﻿IMPORT ML;
 IMPORT ML.Types as Types;
 IMPORT ML.Mat as Mat;
 IMPORT excercise.irisset as irisset;
 IMPORT excercise.kegg;
 lMatrix:={UNSIGNED id;REAL x;REAL y;};
+// YinyangKMeans testing file: summer intern 2017
 
-
-SHARED lIterations:=RECORD
-	TYPEOF(Types.NumericField.id) id;
-	TYPEOF(Types.NumericField.number) number;
-	SET OF TYPEOF(Types.NumericField.value) values;
- END;
  
 /***/
 // DP100
@@ -160,23 +142,34 @@ ML.ToField(dCentroidMatrix,dCentroids);
 // YinyangKMeans:=ML.yinyang.drafts.multigroup_debug.YinyangKMeans(dDocuments,dCentroids,2,0.3);
 
 
-#WORKUNIT('name', 'YinyangKMeansv23:THOR::DP100:2:0.3'); 
-YinyangKMeans:=ML.yinyang.drafts.v2combinev3.YinyangKMeans(dDocuments,dCentroids,30,0.3);
 
-// #WORKUNIT('name', 'YinyangKMeansv4_test:THOR::DP100:30:0.3'); 
-// YinyangKMeans:=ML.yinyang.drafts.yinyangkmeansv4_test.YinyangKMeans(dDocuments,dCentroids,30,0.3);
+
+//%%%%%%%%%%%%%%%%%%%%%%below is the testing code for v4 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+// #WORKUNIT('name', 'YinyangKMeansv23:THOR::DP100:2:0.3'); 
+// YinyangKMeans:=ML.yinyang.drafts.v2combinev3.YinyangKMeans(dDocuments,dCentroids,2,0.3);
+
+// #WORKUNIT('name', 'YinyangKMeansv4_localfilter_test:THOR::DP100:2:0.3'); 
+// YinyangKMeans:=ML.yinyang.drafts.yinyangkmeansv4_localfilter_test.YinyangKMeans(dDocuments,dCentroids,30,0.3);
+
+#WORKUNIT('name', 'YinyangKMeansv4_update_test:THOR::DP100:2:0.3'); 
+YinyangKMeans:=ML.yinyang.drafts.yinyangkmeansv4_updatestep_test.YinyangKMeans(dDocuments,dCentroids,30,0.3);
 
 OUTPUT(YinyangKMeans.Allresults, NAMED('YinyangKMeansAllresults'));  
 iterations := YinyangKMeans.Convergence;                 
 OUTPUT(YinyangKMeans.Convergence, NAMED('YinyangKMeansTotal_Iterations')); 
 // OUTPUT(YinyangKMeans.Allegiances(), NAMED('YinyangKMeansAllegiances'));
 
-Types.NumericField normalizerst(lIterations L, UNSIGNED c) := TRANSFORM
-  SELF.value := L.values[c];
-	SELF := L;
-END;
 
-//normalize result
-rst := NORMALIZE(yinyangkmeans.allresults, iterations, normalizerst(LEFT, COUNTER)); 
+
+// SHARED lIterations:=RECORD
+	// TYPEOF(Types.NumericField.id) id;
+	// TYPEOF(Types.NumericField.number) number;
+	// SET OF TYPEOF(Types.NumericField.value) values;
+ // END;
+
+// normalize result
 // rst := NORMALIZE(yinyangkmeans.allresults, iterations, TRANSFORM(Types.NumericField, SELF.value := LEFT.values[COUNTER],SELF := LEFT)); 
-OUTPUT(rst, NAMED('rst'));
+// OUTPUT(rst, NAMED('rst'));

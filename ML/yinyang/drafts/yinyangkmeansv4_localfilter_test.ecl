@@ -19,7 +19,7 @@ IMPORT ML.Types;
 IMPORT ML.Utils;
 IMPORT STD;
 
-EXPORT yinyangkmeansv4_test := MODULE
+EXPORT yinyangkmeansv4_localfilter_test := MODULE
 
 	// Working structure for cluster distance logic
   SHARED ClusterPair:=RECORD
@@ -532,6 +532,7 @@ EXPORT yinyangkmeansv4_test := MODULE
 		dDistances := Distances(d01,dCentroid0); 
 		output_dDistances0 := OUTPUT(dDistances, NAMED('YinyangKMeans_dDistances0'));
 		dUpperBound := Closest(dDistances);
+		output_dUpperBound := OUTPUT(dUpperBound, NAMED('dUpperBound'));
 		dDistancesSub := JOIN(dUpperBound,dDistances, LEFT.x = RIGHT.x AND LEFT.y = RIGHT.y,RIGHT ONLY);
 //%%%%%%%%above is the same part btw yyv2 and yyv3
 //%%%%%%%%different part: initialization of Gt
@@ -575,8 +576,8 @@ EXPORT yinyangkmeansv4_test := MODULE
 		END;
 		
 		lInput fIterate(DATASET(lInput) d,UNSIGNED c):=FUNCTION	
-
-			dCentroidsIn := PROJECT(d(id = 1), TRANSFORM(lIterations , SELF.id := LEFT. x; SELF.number:= LEFT.y; SELF.values := LEFT.values;));					
+		  action0 := OUTPUT(c, NAMED('iteration'));
+ 			dCentroidsIn := PROJECT(d(id = 1), TRANSFORM(lIterations , SELF.id := LEFT. x; SELF.number:= LEFT.y; SELF.values := LEFT.values;));					
 			dUbIn := TABLE(d(id = 2), {x;y;values;});
 			dLbsIn := TABLE(d(id = 3), {x;y;values;});
 			dCentroidIn := PROJECT(dCentroidsIn,TRANSFORM(Types.NumericField,SELF.value:=LEFT.values[c+1];SELF:=LEFT;));
@@ -593,6 +594,7 @@ EXPORT yinyangkmeansv4_test := MODULE
 
 //%%%%%%different part: get form yyv2:have to test if the dDeltaG is right
 			dGroupDeltaC :=JOIN(dDeltaC, Gt, LEFT.id = RIGHT.x, TRANSFORM(Mat.Types.Element,SELF.value := LEFT.value; SELF := RIGHT;));
+			output_dGroupDeltaC := OUTPUT(dGroupDeltaC, NAMED('dGroupDeltaC'));
 			dDeltaG := DEDUP(SORT(dGroupDeltaC,y,value),y,RIGHT);
 			action5 :=OUTPUT(dDeltaG,NAMED('YinyangKMeans_dDeltaG')); 
 
@@ -607,34 +609,46 @@ EXPORT yinyangkmeansv4_test := MODULE
       action8 :=OUTPUT(groupFilter, NAMED('YinyangKMeansv4_groupFilter'));	
       
 //^^^^^add below code for local filter for v4:
-			dLbs_lf := JOIN(dLbsItr, groupfilter, LEFT.x = RIGHT.x, TRANSFORM(LEFT), LOOKUP);
+			dLbs_lf := JOIN(dLbsItr, groupfilter, LEFT.x = RIGHT.x, TRANSFORM(LEFT), LOOKUP);//looks ok
 			action9 :=OUTPUT(dLbs_lf, NAMED('YinyangKMeansv4_dLbs_lf'));
-			lemma2_l_glb := DEDUP(SORT(dLbs_lf, x,value), x);
+			lemma2_l_glb := DEDUP(SORT(dLbs_lf, x,value), x);//looks okay
 			action10 :=OUTPUT(lemma2_l_glb, NAMED('YinyangKMeansv4_lemma2_l_glb'));
       lemma2_r :=JOIN(dLbs_lf, dGroupDeltaC, LEFT.y = RIGHT.y, TRANSFORM(Mat.Types.Element, SELF.y := RIGHT.x ,SELF.value := LEFT.value - RIGHT.value, SELF := LEFT));
-      action11 :=OUTPUT(lemma2_r, NAMED('YinyangKMeansv4_llemma2_r'));      
-			lemma2 := JOIN(lemma2_r, lemma2_l_glb, LEFT.x = RIGHT.x AND LEFT.value <= RIGHT.value, TRANSFORM(RIGHT));			
-      action12 :=OUTPUT(lemma2, NAMED('YinyangKMeansv4_lemma2'));			
+      action11 :=OUTPUT(lemma2_r, NAMED('YinyangKMeansv4_llemma2_r'));    
+			//debugging
+			// lemma2 := JOIN(lemma2_r, lemma2_l_glb, LEFT.x = RIGHT.x AND LEFT.value <= RIGHT.value, TRANSFORM(RIGHT), LOOKUP);			
+      lemma2 := DEDUP(SORT(JOIN(lemma2_r, lemma2_l_glb, LEFT.x = RIGHT.x AND LEFT.value <= RIGHT.value, TRANSFORM(LEFT), LOOKUP),x),x);	      
+			action12 :=OUTPUT(lemma2, NAMED('YinyangKMeansv4_lemma2'));			
+			
+      //can optimize by mapped distance			
 			dLocalFilter := JOIN(d01,lemma2, LEFT.id = RIGHT.x,TRANSFORM(LEFT));
 			action13 :=OUTPUT(dLocalFilter, NAMED('YinyangKMeansv4_dLocalFilter'));
 			
-			
-			
-			
+		
 			dDistancesLocalFilter := Distances(dLocalFilter,dCentroidIn);
 			action14 :=OUTPUT(dDistancesLocalFilter, NAMED('YinyangKMeansv4_dDistancesLocalFilter'));
 			dClosestLocalFilter := Closest(dDistancesLocalFilter);
+			action15 :=OUTPUT(dClosestLocalFilter, NAMED('YinyangKMeansv4_dClosestLocalFilter'));
 	    LocalFilter := JOIN(dClosestLocalFilter,dUbItr, LEFT.x = RIGHT.x AND LEFT.y !=RIGHT.y, TRANSFORM(LEFT), LOOKUP, FEW);
+      action16 :=OUTPUT(LocalFilter, NAMED('YinyangKMeansv4_LocalFilter'));			
 			dUbLocalFilter := JOIN(dUbItr, LocalFilter, LEFT.x = RIGHT.x, TRANSFORM(LEFT), LEFT ONLY);
+			action17 :=OUTPUT(dUbLocalFilter, NAMED('YinyangKMeansv4_dUbLocalFilter'));	
 			dMap := PROJECT(dUbLocalFilter, TRANSFORM(ClusterPair, SELF.id := LEFT.x; SELF.clusterid := LEFT.y;SELF.number := 0; SELF.value01 := LEFT.value; SELF.value02 := 0; SELF.value03 := 0;));		
-			dMappedDistances := MappedDistances(d01,dCentroidIn,fDist,dMap);	
+      action18 :=OUTPUT(dMap, NAMED('YinyangKMeansv4_dMap'));			
+			dMappedDistances := MappedDistances(d01,dCentroidIn,fDist,dMap);
+			action19 :=OUTPUT(dMappedDistances, NAMED('YinyangKMeansv4_dMappedDistances'));	
+			
 			dUbUpdate:= LocalFilter + dMappedDistances;
+			action20 :=OUTPUT(SORT(dUbUpdate,x), NAMED('YinyangKMeansv4_dUbUpdate'));
+			
 //%%%%%different part: lowbound update should involve group concepts
 			dLbsLocalFilter := JOIN(LocalFilter,dDistancesLocalFilter, LEFT.x = RIGHT.x , TRANSFORM(RIGHT),RIGHT ONLY);
 			dGroupLbsLocalFilter := SORT(JOIN(dLbsLocalFilter, Gt, LEFT.y = RIGHT.x, TRANSFORM(Mat.Types.Element,SELF.y := RIGHT.y, SELF := LEFT)),x, y, value);		
 		  dGroupLbsUpdate := DEDUP(dGroupLbsLocalFilter,LEFT.x = RIGHT.x AND LEFT.y = RIGHT.y);      
-			dLbsUpdate := JOIN(dLbsGroupFilter, dGroupLbsUpdate,LEFT.x = RIGHT.x AND LEFT.y = RIGHT.y, TRANSFORM(Mat.Types.Element, SELF.value := IF( RIGHT.value = 0,LEFT.value, RIGHT.value), SELF.y := IF( RIGHT.value = 0,LEFT.y, RIGHT.y), SELF := LEFT;), LEFT OUTER, LOOKUP );
 
+
+			dLbsUpdate := JOIN(dLbsGroupFilter, dGroupLbsUpdate,LEFT.x = RIGHT.x AND LEFT.y = RIGHT.y, TRANSFORM(Mat.Types.Element, SELF.value := IF( RIGHT.value = 0,LEFT.value, RIGHT.value), SELF.y := IF( RIGHT.value = 0,LEFT.y, RIGHT.y), SELF := LEFT;), LEFT OUTER, LOOKUP );
+      action21 :=OUTPUT(SORT(dLbsUpdate,x), NAMED('YinyangKMeansv4_dLbsUpdate'));
 
 
 
@@ -652,8 +666,13 @@ EXPORT yinyangkmeansv4_test := MODULE
 			dCentroidsOut := PROJECT(newCsTemp, TRANSFORM(lInput,SELF.id := 1;SELF.values:=LEFT.values;SELF.y := LEFT.number; SELF.x:=LEFT.id;SELF.converge := bConverged; SELF.iter := c;));					
 			dUbOut := JOIN(dUbIn, dUbUpdate, LEFT.x = RIGHT.x ,TRANSFORM(lInput,SELF.id := 2;SELF.values:=LEFT.values+[RIGHT.value];SELF.y := RIGHT.y;SELF.converge := bConverged; SELF.iter := c; SELF:=LEFT;));
 			dLbsOut := JOIN(dLbsIn, dLbsUpdate, LEFT.x = RIGHT.x and LEFT.y = RIGHT.y ,TRANSFORM(lInput,SELF.id := 3;SELF.values:=LEFT.values+[RIGHT.value];SELF.y := RIGHT.y; SELF.converge := bConverged; SELF.iter := c;SELF:=LEFT;));
-      SHARED dOutput := dCentroidsOut+ dUbOut + dLbsOut;					
-			RETURN dOutput;
+      SHARED dOutput := dCentroidsOut+ dUbOut + dLbsOut;
+			
+			// action := PARALLEL(output_dDistances0, output_dUpperBound, output_Gt, output_groups, output_dLowerBound, action0,action1,action2, action3,action4,action5,action6,action7,action8,action9,action10,action11,action12,action13,action14,action15,action16,action17,action18,action19,action20,action21,action22,action23);
+			action := PARALLEL(output_dDistances0, output_dUpperBound, output_Gt, output_groups, output_dLowerBound, action0,action1,action2, action3,action4,output_dGroupDeltaC,action5,action6,action7,action8,action9,action10,action11,action12,action13,action14,action15,action16,action17,action18,action19,action20,action21);
+			// action := PARALLEL(action8,action9,action10,action11,action12,action13);	
+			// RETURN dOutput;
+			RETURN WHEN(dOutput, action);
 		END;
 		dIterationResults :=LOOP(dInput,LEFT.converge = False AND COUNTER <= n - 1,fIterate(ROWS(LEFT),COUNTER));
 		dResults := TABLE(dIterationResults(id=1), {x, TYPEOF(Types.NumericField.number) number := y, values});

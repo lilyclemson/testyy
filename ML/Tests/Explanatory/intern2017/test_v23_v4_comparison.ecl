@@ -8,7 +8,7 @@ IMPORT excercise.uscensus as uscensus;
 
 lMatrix:={UNSIGNED id;REAL x;REAL y;};
 
-/** */
+/** 
 //DP100
 dDocumentMatrix:=DATASET([
 {1,2.4639,7.8579},
@@ -119,15 +119,15 @@ dCentroidMatrix:=DATASET([
 {3,3,3},
 {4,4,4}
 ],lMatrix);
-
+*/
 
 //iris
 // dDocumentMatrix := irisset.input;
 // dCentroidMatrix := irisset.input[1..3];
 
 //KEGG
-// dDocumentMatrix := kegg.input;
-// dCentroidMatrix := kegg.input[1..4];
+dDocumentMatrix := kegg.input;
+dCentroidMatrix := kegg.input[1..4];
  
 //uscensus
 // dDocumentMatrix := uscensus.input;

@@ -1,5 +1,4 @@
-﻿
-// K-MEANS EXAMPLE
+﻿// K-MEANS EXAMPLE
 //
 // Presents K-Means clustering in a 2-dimensional space. 100 data points
 // are initialized with random values on the x and y axes, and 4 centroids
@@ -20,7 +19,7 @@ IMPORT excercise.uscensus as uscensus;
 
 lMatrix:={UNSIGNED id;REAL x;REAL y;};
 
-/***/
+/**
 //DP100
 dDocumentMatrix:=DATASET([
 {1,2.4639,7.8579},
@@ -131,15 +130,15 @@ dCentroidMatrix:=DATASET([
 {3,3,3},
 {4,4,4}
 ],lMatrix);
+*/
 
-
-//iris
+// iris
 // dDocumentMatrix := irisset.input;
 // dCentroidMatrix := irisset.input[1..3];
 
 //KEGG
-// dDocumentMatrix := kegg.input;
-// dCentroidMatrix := kegg.input[1..4];
+dDocumentMatrix := kegg.input;
+dCentroidMatrix := kegg.input[1..4];
  
 //uscensus
 // dDocumentMatrix := uscensus.input;
@@ -162,13 +161,16 @@ ML.ToField(dCentroidMatrix,dCentroids);
 
 // #WORKUNIT('name', 'YinyangKMeans:HTHOR:KEGG:30:0.3');
 #WORKUNIT('name', 'Comparison:THOR:DP100:30:0.3');
+n := 18;
+nConverge := 0.3;
 // YinyangKMeans:=ML.yinyang.drafts.multigroup_debug.YinyangKMeans(dDocuments,dCentroids,2,0.3);  
-YinyangKMeans:=ML.yinyang.drafts.v2combinev3.YinyangKMeans(dDocuments,dCentroids,16,0.3);
-OUTPUT(YinyangKMeans.Allresults, NAMED('YinyangKMeansAllresults'));                                       // The table that contains the results of each iteration
+// YinyangKMeans:=ML.yinyang.drafts.v2combinev3.YinyangKMeans(dDocuments,dCentroids,16,0.3);
+YinyangKMeans:=ML.yinyang.drafts.yinyangkmeansv4_test.YinyangKMeans(dDocuments,dCentroids,n,nConverge);
+OUTPUT(YinyangKMeans.Allresults, NAMED('YinyangKMeansAllresults'));                                       
 OUTPUT(YinyangKMeans.Convergence, NAMED('YinyangKMeans_Iterations')); 
 //OUTPUT(KMeans.Allegiances(), NAMED('KMeansAllegiances'));
 
-KMeans:=ML.yinyang.drafts.onegroupfaster_comp.KMeans(dDocuments,dCentroids,16,0.3); 
+KMeans:=ML.yinyang.drafts.onegroupfaster_comp.KMeans(dDocuments,dCentroids,n,nConverge); 
 OUTPUT(KMeans.Allresults, NAMED('KMeansAllresults'));
 OUTPUT(KMeans.Convergence, NAMED('KMeansTotal_Iterations')); 
 lCompare := RECORD
@@ -181,3 +183,25 @@ result := JOIN(YinyangKMeans.Allresults,KMeans.Allresults,LEFT.id = RIGHT.id AND
 OUTPUT(result, NAMED('resultscomparison'));
 
 // change the values to value
+SHARED lIterations:=RECORD
+	TYPEOF(Types.NumericField.id) id;
+	TYPEOF(Types.NumericField.number) number;
+	SET OF TYPEOF(Types.NumericField.value) values;
+ END;
+Types.NumericField normalizerst(lIterations L, UNSIGNED c) := TRANSFORM
+  SELF.value := L.values[c];
+	SELF := L;
+END;
+
+ //normalize result
+rst_YinyangKMeans := NORMALIZE(YinyangKMeans.allresults, YinyangKMeans.Convergence, normalizerst(LEFT, COUNTER)); 
+// rst := NORMALIZE(yinyangkmeans.allresults, iterations, TRANSFORM(Types.NumericField, SELF.value := LEFT.values[COUNTER],SELF := LEFT)); 
+OUTPUT(rst_YinyangKMeans, NAMED('rst_YinyangKMeans'));
+
+rst_KMeans := NORMALIZE(KMeans.allresults, KMeans.Convergence, normalizerst(LEFT, COUNTER)); 
+// rst := NORMALIZE(yinyangkmeans.allresults, iterations, TRANSFORM(Types.NumericField, SELF.value := LEFT.values[COUNTER],SELF := LEFT)); 
+OUTPUT(rst_KMeans, NAMED('rst_KMeans'));
+
+// detail_result_comparison := JOIN(rst_YinyangKMeans,rst_KMeans,LEFT.id = RIGHT.id AND LEFT.number = RIGHT.number, TRANSFORM(lCompare, SELF.pass := IF(LEFT.value = RIGHT.value, TRUE, FALSE), SELF := LEFT;));
+detail_result_comparison := JOIN(rst_YinyangKMeans,rst_KMeans,LEFT.id = RIGHT.id AND LEFT.number = RIGHT.number AND LEFT.value = RIGHT.value, TRANSFORM(lCompare, SELF.pass := FALSE, SELF := LEFT;), FULL ONLY);
+OUTPUT(detail_result_comparison, NAMED('detail_result_comparison'));
