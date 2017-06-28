@@ -1,25 +1,14 @@
-﻿// K-MEANS EXAMPLE
-//
-// Presents K-Means clustering in a 2-dimensional space. 100 data points
-// are initialized with random values on the x and y axes, and 4 centroids
-// are initialized with values assigned to be regular but non-symmetrical.
-//
-// The sample code shows how to determine the new coordinates of the
-// centroids after a user-defined set of iterations. Also shows how to
-// determine the "allegiance" of each data point after those iterations.
-//---------------------------------------------------------------------------
-
-//K-Means testing file: summer intern 2017
+﻿//Yinyang K-Means testing file: compare the result of v2combinev3.ecl to yinyangkmeansv4-test.ecl intern 2017
 
 IMPORT ML;
 IMPORT ML.Types;
 IMPORT excercise.irisset as irisset;
-IMPORT excercise.kegg;
+IMPORT excercise.relation20network as kegg;
 IMPORT excercise.uscensus as uscensus;
 
 lMatrix:={UNSIGNED id;REAL x;REAL y;};
 
-/**
+/** 
 //DP100
 dDocumentMatrix:=DATASET([
 {1,2.4639,7.8579},
@@ -132,7 +121,7 @@ dCentroidMatrix:=DATASET([
 ],lMatrix);
 */
 
-// iris
+//iris
 // dDocumentMatrix := irisset.input;
 // dCentroidMatrix := irisset.input[1..3];
 
@@ -146,10 +135,7 @@ dCentroidMatrix := kegg.input[1..4];
  
 ML.ToField(dDocumentMatrix,dDocuments);
 ML.ToField(dCentroidMatrix,dCentroids);
-
-#option('outputlimit', 50); 
- 
- 
+                                                      
 //#WORKUNIT('name', 'YinyangKMeans:USCensus:30:0.0'); 
 //YinyangKMeans:=ML.onegroupfaster.YinyangKMeans(dDocuments,dCentroids,30,0);
 
@@ -163,24 +149,17 @@ ML.ToField(dCentroidMatrix,dCentroids);
 //YinyangKMeans:=ML.onegroupfaster.YinyangKMeans(dDocuments,dCentroids,30,1.0); 
 
 // #WORKUNIT('name', 'YinyangKMeans:HTHOR:KEGG:30:0.3');
-// #WORKUNIT('name', 'Comparison:THOR:DP100:15:0.3');
-#WORKUNIT('name', 'Comparison:THOR:KEGG:50:0.3');
-// #WORKUNIT('name', 'Comparison:THOR:IRIS:3:0.3');
-n := 50;
-nConverge := 0.3;
+#WORKUNIT('name', 'Comparison:THOR:DP100:30:0.3');
 // YinyangKMeans:=ML.yinyang.drafts.multigroup_debug.YinyangKMeans(dDocuments,dCentroids,2,0.3);  
-// YinyangKMeans:=ML.yinyang.drafts.v2combinev3.YinyangKMeans(dDocuments,dCentroids,16,0.3);
+YinyangKMeansv23:=ML.yinyang.drafts.v2combinev3.YinyangKMeans(dDocuments,dCentroids,30,0.3);
+OUTPUT(YinyangKMeansv23.Allresults, NAMED('YinyangKMeansv23_allresults'));                                       // The table that contains the results of each iteration
+OUTPUT(YinyangKMeansv23.Convergence, NAMED('YinyangKMeansv23_Iterations')); 
+//OUTPUT(KMeans.Allegiances(), NAMED('KMeansAllegiances'));
 
-// YinyangKMeans:=ML.yinyang.drafts.yinyangkmeansv4_test.YinyangKMeans(dDocuments,dCentroids,n,nConverge);
-// KMeans:=ML.yinyang.drafts.onegroupfaster_comp.KMeans(dDocuments,dCentroids,n,nConverge); 
+YinyangKMeansv4:=ML.yinyang.drafts.yinyangkmeansv4_test.YinyangKMeans(dDocuments,dCentroids,30,0.3);
+OUTPUT(YinyangKMeansv4.Allresults, NAMED('YinyangKMeansv4_allresults'));                                       // The table that contains the results of each iteration
+OUTPUT(YinyangKMeansv4.Convergence, NAMED('YinyangKMeansv4_Iterations')); 
 
-YinyangKMeans:=ML.yinyang.drafts.yinyangkmeansv4_updatestep_test.YinyangKMeans(dDocuments,dCentroids,n,nConverge);
-KMeans:=ML.KMeans.KMeans(dDocuments,dCentroids,n,nConverge); 
-
-OUTPUT(YinyangKMeans.Allresults, NAMED('YinyangKMeansAllresults'));                                       
-OUTPUT(YinyangKMeans.Convergence, NAMED('YinyangKMeans_Iterations')); 
-OUTPUT(KMeans.Allresults, NAMED('KMeansAllresults'));
-OUTPUT(KMeans.Convergence, NAMED('KMeansTotal_Iterations')); 
 
 lCompare := RECORD
 Types.NumericField.id;
@@ -188,10 +167,12 @@ Types.NumericField.number;
 Boolean pass;
 END;
 
-result := JOIN(YinyangKMeans.Allresults,KMeans.Allresults,LEFT.id = RIGHT.id AND LEFT.number = RIGHT.number, TRANSFORM(lCompare, SELF.pass := IF(LEFT.values = RIGHT.values, TRUE, FALSE), SELF := LEFT;));
+//general compare
+result := JOIN(YinyangKMeansv23.Allresults,YinyangKMeansv4.Allresults,LEFT.id = RIGHT.id AND LEFT.number = RIGHT.number, TRANSFORM(lCompare, SELF.pass := IF(LEFT.values = RIGHT.values, TRUE, FALSE), SELF := LEFT;));
 OUTPUT(result, NAMED('resultscomparison'));
 
-// change the values to value
+//detail compare: change the values to value
+
 SHARED lIterations:=RECORD
 	TYPEOF(Types.NumericField.id) id;
 	TYPEOF(Types.NumericField.number) number;
@@ -203,14 +184,13 @@ Types.NumericField normalizerst(lIterations L, UNSIGNED c) := TRANSFORM
 END;
 
  //normalize result
-rst_YinyangKMeans := NORMALIZE(YinyangKMeans.allresults, YinyangKMeans.Convergence, normalizerst(LEFT, COUNTER)); 
+rst_yinyangv23 := NORMALIZE(yinyangkmeansv23.allresults, YinyangKMeansv23.Convergence, normalizerst(LEFT, COUNTER)); 
 // rst := NORMALIZE(yinyangkmeans.allresults, iterations, TRANSFORM(Types.NumericField, SELF.value := LEFT.values[COUNTER],SELF := LEFT)); 
-OUTPUT(rst_YinyangKMeans, NAMED('rst_YinyangKMeans'));
+OUTPUT(rst_yinyangv23, NAMED('rst_yinyangv23'));
 
-rst_KMeans := NORMALIZE(KMeans.allresults, KMeans.Convergence, normalizerst(LEFT, COUNTER)); 
+rst_yinyangv4 := NORMALIZE(yinyangkmeansv4.allresults, YinyangKMeansv4.Convergence, normalizerst(LEFT, COUNTER)); 
 // rst := NORMALIZE(yinyangkmeans.allresults, iterations, TRANSFORM(Types.NumericField, SELF.value := LEFT.values[COUNTER],SELF := LEFT)); 
-OUTPUT(rst_KMeans, NAMED('rst_KMeans'));
+OUTPUT(rst_yinyangv4, NAMED('rst_yinyangv4'));
 
-// detail_result_comparison := JOIN(rst_YinyangKMeans,rst_KMeans,LEFT.id = RIGHT.id AND LEFT.number = RIGHT.number, TRANSFORM(lCompare, SELF.pass := IF(LEFT.value = RIGHT.value, TRUE, FALSE), SELF := LEFT;));
-detail_result_comparison := JOIN(rst_YinyangKMeans,rst_KMeans,LEFT.id = RIGHT.id AND LEFT.number = RIGHT.number AND LEFT.value = RIGHT.value, TRANSFORM(lCompare, SELF.pass := FALSE, SELF := LEFT;), FULL ONLY);
+detail_result_comparison := JOIN(rst_yinyangv23,rst_yinyangv4,LEFT.id = RIGHT.id AND LEFT.number = RIGHT.number, TRANSFORM(lCompare, SELF.pass := IF(LEFT.value = RIGHT.value, TRUE, FALSE), SELF := LEFT;));
 OUTPUT(detail_result_comparison, NAMED('detail_result_comparison'));

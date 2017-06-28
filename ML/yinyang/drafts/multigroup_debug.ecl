@@ -547,6 +547,7 @@ EXPORT multigroup_debug := MODULE
 		dDistances0 := Distances(d01,dCentroid0); // All the distances from each data points to each centroids
 		output_dDistances0 := OUTPUT(dDistances0, NAMED('YinyangKMeans_dDistances0'));
 		dUpperBound := Closest(dDistances0);// Filter out the distance from a data point to its best centroid.
+    
 /*
         groupclose := GROUP(SORT(dDistances, x), x);
 		action0 := OUTPUT(groupclose, NAMED('groupclose'));

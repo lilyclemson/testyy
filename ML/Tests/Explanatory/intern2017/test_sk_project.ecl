@@ -1,9 +1,4 @@
-<<<<<<< HEAD
-// K-MEANS EXAMPLE
-=======
-﻿// K-MEANS EXAMPLE
->>>>>>> lily
-//
+
 // Presents K-Means clustering in a 2-dimensional space. 100 data points
 // are initialized with random values on the x and y axes, and 4 centroids
 // are initialized with values assigned to be regular but non-symmetrical.
@@ -22,13 +17,8 @@ IMPORT excercise.uscensus as uscensus;
 
 lMatrix:={UNSIGNED id;REAL x;REAL y;};
 
-/**
-<<<<<<< HEAD
-=======
-*/
->>>>>>> lily
 //DP100
-dDocumentMatrix:=DATASET([
+dDocumentMatrix:= DATASET([
 {1,2.4639,7.8579},
 {2,0.5573,9.4681},
 {3,4.6054,8.4723},
@@ -137,36 +127,37 @@ dCentroidMatrix:=DATASET([
 {3,3,3},
 {4,4,4}
 ],lMatrix);
-<<<<<<< HEAD
-*/
-=======
->>>>>>> lily
+
 
 //iris
-//dDocumentMatrix := irisset.input;
-//dCentroidMatrix := irisset.input[1..3];
+// dDocumentMatrix := irisset.input;
+// dCentroidMatrix := irisset.input[1..3];
 
 //KEGG
-<<<<<<< HEAD
+
 dDocumentMatrix := kegg.input;
 dCentroidMatrix := kegg.input[1..100];
+
+
  
 //uscensus
 //dDocumentMatrix := uscensus.input;
 //dCentroidMatrix := uscensus.input[1..4];
-=======
-// dDocumentMatrix := kegg.input;
-// dCentroidMatrix := kegg.input[1..10];
+
  
 //uscensus
 // dDocumentMatrix := uscensus.input;
 // dCentroidMatrix := uscensus.input[1..100];
->>>>>>> lily
+
  
 ML.ToField(dDocumentMatrix,dDocuments);
 ML.ToField(dCentroidMatrix,dCentroids);
-                                                      
-<<<<<<< HEAD
+
+
+#option('outputlimit', 1000); 
+
+                                                     
+
 //#WORKUNIT('name', 'KMeans:USCensus:30:0.0'); 
 //KMeans:=ML.onegroupfaster.KMeans(dDocuments,dCentroids,30,0);
 
@@ -182,12 +173,12 @@ ML.ToField(dCentroidMatrix,dCentroids);
 #WORKUNIT('name', 'KMeans:THOR:KEGG:30:0.3');
 KMeans:=ML.onegroupfaster.KMeans(dDocuments,dCentroids,30,0.3);  // Set up YYKMeans with a maximum of 30 iterations and .3 as a convergence threshold
 OUTPUT(KMeans.Allresults, NAMED('KMeansAllresults'));                                       // The table that contains the results of each iteration
-=======
+
 // #WORKUNIT('name', 'KMeans:USCensus:THOR:30:0.0'); 
 // KMeans:=ML.Cluster.KMeans(dDocuments,dCentroids,30,0);
 
-//#WORKUNIT('name', 'KMeans:USCensus:30:0.3');  
-//KMeans:=ML.Cluster.KMeans(dDocuments,dCentroids,30,0.3);
+// #WORKUNIT('name', 'KMeans:USCensus:30:0.3');  
+// KMeans:=ML.Cluster.KMeans(dDocuments,dCentroids,30,0.3);
 
 //#WORKUNIT('name', 'KMeans:USCensus:30:0.6');  
 //KMeans:=ML.Cluster.KMeans(dDocuments,dCentroids,30,0.6); 
@@ -195,18 +186,34 @@ OUTPUT(KMeans.Allresults, NAMED('KMeansAllresults'));                           
 // #WORKUNIT('name', 'KMeans:USCensus:30:1.0');  
 // KMeans:=ML.yinyang.drafts.multigroup_debug.KMeans(dDocuments,dCentroids,30,1.0); 
 
+#WORKUNIT('name', 'KMeans:HTHOR:KEGG:50:0.3');
+KMeans:=ML.Cluster.KMeans(dDocuments,dCentroids,50,0.3); 
 
-// #WORKUNIT('name', 'KMeans:HTHOR:KEGG:30:0.3');
-// KMeans:=ML.Cluster.KMeans(dDocuments,dCentroids,30,0.3); 
+// #WORKUNIT('name', 'KMeans:THOR:KEGG:50:0.3'); 
+// KMeans:=ML.KMeans.KMeans(dDocuments,dCentroids,50,0.3);
 
-// #WORKUNIT('name', 'KMeans:THOR:KEGG:30:0.3'); 
-// KMeans:=ML.yinyang.drafts.multigroup_debug.KMeans(dDocuments,dCentroids,30,0.3);
 
+// #WORKUNIT('name', 'KMeans:HTHOR:DP100:30:0.3'); 
+// KMeans:=ML.KMeans.KMeans(dDocuments,dCentroids,30,0.3);
+
+
+// #WORKUNIT('name', 'KMeans:THOR:DP100:30:0.3'); 
+// KMeans:=ML.Cluster.KMeans(dDocuments,dCentroids,30,0.3);
+
+
+// #WORKUNIT('name', 'KMeans:iris:30:0.3'); 
+// KMeans:=ML.KMeans.KMeans(dDocuments,dCentroids,30,0.3);
+
+OUTPUT(KMeans.Allresults, NAMED('KMeansAllresults'));                    
+// OUTPUT(KMeans.Convergence, NAMED('KMeansTotal_Iterations')); 
 
 #WORKUNIT('name', 'KMeans:THOR:DP100:2:0.3'); 
 KMeans:=ML.yinyang.drafts.onegroupfaster_comp.KMeans(dDocuments,dCentroids,2,0.3);
  
 OUTPUT(KMeans.Allresults, NAMED('KMeansAllresults'));                                      
->>>>>>> lily
+
 //OUTPUT(KMeans.Convergence, NAMED('KMeansTotal_Iterations')); 
+
 //OUTPUT(KMeans.Allegiances(), NAMED('KMeansAllegiances'));
+
+
