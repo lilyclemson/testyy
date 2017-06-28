@@ -14,7 +14,7 @@
 IMPORT ML;
 IMPORT ML.Types;
 IMPORT excercise.irisset as irisset;
-IMPORT excercise.relation20network as kegg;
+IMPORT excercise.kegg;
 IMPORT excercise.uscensus as uscensus;
 
 lMatrix:={UNSIGNED id;REAL x;REAL y;};
@@ -146,7 +146,10 @@ dCentroidMatrix := kegg.input[1..4];
  
 ML.ToField(dDocumentMatrix,dDocuments);
 ML.ToField(dCentroidMatrix,dCentroids);
-                                                      
+
+#option('outputlimit', 50); 
+ 
+ 
 //#WORKUNIT('name', 'YinyangKMeans:USCensus:30:0.0'); 
 //YinyangKMeans:=ML.onegroupfaster.YinyangKMeans(dDocuments,dCentroids,30,0);
 
@@ -160,19 +163,25 @@ ML.ToField(dCentroidMatrix,dCentroids);
 //YinyangKMeans:=ML.onegroupfaster.YinyangKMeans(dDocuments,dCentroids,30,1.0); 
 
 // #WORKUNIT('name', 'YinyangKMeans:HTHOR:KEGG:30:0.3');
-#WORKUNIT('name', 'Comparison:THOR:DP100:30:0.3');
-n := 18;
+// #WORKUNIT('name', 'Comparison:THOR:DP100:15:0.3');
+#WORKUNIT('name', 'Comparison:THOR:KEGG:50:0.3');
+// #WORKUNIT('name', 'Comparison:THOR:IRIS:3:0.3');
+n := 50;
 nConverge := 0.3;
 // YinyangKMeans:=ML.yinyang.drafts.multigroup_debug.YinyangKMeans(dDocuments,dCentroids,2,0.3);  
 // YinyangKMeans:=ML.yinyang.drafts.v2combinev3.YinyangKMeans(dDocuments,dCentroids,16,0.3);
-YinyangKMeans:=ML.yinyang.drafts.yinyangkmeansv4_test.YinyangKMeans(dDocuments,dCentroids,n,nConverge);
+
+// YinyangKMeans:=ML.yinyang.drafts.yinyangkmeansv4_test.YinyangKMeans(dDocuments,dCentroids,n,nConverge);
+// KMeans:=ML.yinyang.drafts.onegroupfaster_comp.KMeans(dDocuments,dCentroids,n,nConverge); 
+
+YinyangKMeans:=ML.yinyang.drafts.yinyangkmeansv4_updatestep_test.YinyangKMeans(dDocuments,dCentroids,n,nConverge);
+KMeans:=ML.KMeans.KMeans(dDocuments,dCentroids,n,nConverge); 
+
 OUTPUT(YinyangKMeans.Allresults, NAMED('YinyangKMeansAllresults'));                                       
 OUTPUT(YinyangKMeans.Convergence, NAMED('YinyangKMeans_Iterations')); 
-//OUTPUT(KMeans.Allegiances(), NAMED('KMeansAllegiances'));
-
-KMeans:=ML.yinyang.drafts.onegroupfaster_comp.KMeans(dDocuments,dCentroids,n,nConverge); 
 OUTPUT(KMeans.Allresults, NAMED('KMeansAllresults'));
 OUTPUT(KMeans.Convergence, NAMED('KMeansTotal_Iterations')); 
+
 lCompare := RECORD
 Types.NumericField.id;
 Types.NumericField.number;

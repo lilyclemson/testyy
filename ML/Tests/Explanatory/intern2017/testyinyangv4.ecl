@@ -1,26 +1,15 @@
-﻿// K-MEANS EXAMPLE
-//
-// Presents K-Means clustering in a 2-dimensional space. 100 data points
-// are initialized with random values on the x and y axes, and 4 centroids
-// are initialized with values assigned to be regular but non-symmetrical.
-//
-// The sample code shows how to determine the new coordinates of the
-// centroids after a user-defined set of iterations. Also shows how to
-// determine the "allegiance" of each data point after those iterations.
-//---------------------------------------------------------------------------
-
-//K-Means testing file: summer intern 2017
-
-IMPORT ML;
+﻿IMPORT ML;
+IMPORT ML.Types as Types;
+IMPORT ML.Mat as Mat;
 IMPORT excercise.irisset as irisset;
 IMPORT excercise.kegg;
 IMPORT excercise.uscensus as uscensus;
 
 lMatrix:={UNSIGNED id;REAL x;REAL y;};
 
-
+ 
 /**
-//DP100
+// DP100
 dDocumentMatrix:=DATASET([
 {1,2.4639,7.8579},
 {2,0.5573,9.4681},
@@ -130,58 +119,25 @@ dCentroidMatrix:=DATASET([
 {3,3,3},
 {4,4,4}
 ],lMatrix);
-
 */
 
-//iris
+// iris
 // dDocumentMatrix := irisset.input;
 // dCentroidMatrix := irisset.input[1..3];
 
-//KEGG
+// KEGG
 dDocumentMatrix := kegg.input;
-dCentroidMatrix := kegg.input[1..100];
- 
+dCentroidMatrix := kegg.input[1..4];
+
 //uscensus
 // dDocumentMatrix := uscensus.input;
 // dCentroidMatrix := uscensus.input[1..100];
- 
+
 ML.ToField(dDocumentMatrix,dDocuments);
 ML.ToField(dCentroidMatrix,dCentroids);
 
-#option('outputlimit', 1000); 
+#option('outputlimit', 100);
 
-                                                     
-// #WORKUNIT('name', 'KMeans:USCensus:THOR:30:0.0'); 
-// KMeans:=ML.Cluster.KMeans(dDocuments,dCentroids,30,0);
-
-// #WORKUNIT('name', 'KMeans:USCensus:30:0.3');  
-// KMeans:=ML.Cluster.KMeans(dDocuments,dCentroids,30,0.3);
-
-//#WORKUNIT('name', 'KMeans:USCensus:30:0.6');  
-//KMeans:=ML.Cluster.KMeans(dDocuments,dCentroids,30,0.6); 
-// #option('outputLimit', 2000);
-// #WORKUNIT('name', 'KMeans:USCensus:30:1.0');  
-// KMeans:=ML.yinyang.drafts.multigroup_debug.KMeans(dDocuments,dCentroids,30,1.0); 
-
-#WORKUNIT('name', 'KMeans:HTHOR:KEGG:50:0.3');
-KMeans:=ML.Cluster.KMeans(dDocuments,dCentroids,50,0.3); 
-
-// #WORKUNIT('name', 'KMeans:THOR:KEGG:50:0.3'); 
-// KMeans:=ML.KMeans.KMeans(dDocuments,dCentroids,50,0.3);
-
-
-// #WORKUNIT('name', 'KMeans:HTHOR:DP100:30:0.3'); 
-// KMeans:=ML.KMeans.KMeans(dDocuments,dCentroids,30,0.3);
-
-// #WORKUNIT('name', 'KMeans:THOR:DP100:30:0.3'); 
-// KMeans:=ML.Cluster.KMeans(dDocuments,dCentroids,30,0.3);
-
-
-// #WORKUNIT('name', 'KMeans:iris:30:0.3'); 
-// KMeans:=ML.KMeans.KMeans(dDocuments,dCentroids,30,0.3);
-
-OUTPUT(KMeans.Allresults, NAMED('KMeansAllresults'));                    
-// OUTPUT(KMeans.Convergence, NAMED('KMeansTotal_Iterations')); 
-//OUTPUT(KMeans.Allegiances(), NAMED('KMeansAllegiances'));
-
-
+#WORKUNIT('name', 'YinyangKMeansv4_test:KEGG:30:0.3'); 
+YinyangKMeans:=ML.yinyang.drafts.yinyangkmeansv4_updatestep_test.YinyangKMeans(dDocuments,dCentroids,30,0.3);
+OUTPUT(YinyangKMeans.Allresults, NAMED('YinyangKMeansAllresults'));  

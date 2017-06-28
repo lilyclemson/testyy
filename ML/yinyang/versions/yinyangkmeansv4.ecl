@@ -5,9 +5,10 @@
 // performing K-Means calculations.
 //-----------------------------------------------------------------------------
 
-//Trying to add updatestep based on yinyangkmeansv4_localfilter.ecl (use its local filter) and yinyangkmeansv1.ecl (use its update step)
-//Version: still working on
-//create date: 0                                                                                                            
+//yinyangkmeansv4.ecl: full funcitonal yinyangkmeans with global filter, group filter, local fitler and update step.
+//test file: yinyangkmeansv4_updatestep_test.ecl
+//Version: final
+//create date: 06/22/2017                                                                                                        
 
 
 IMPORT * FROM $;
@@ -17,7 +18,7 @@ IMPORT ML.Types;
 IMPORT ML.Utils;
 IMPORT STD;
 
-EXPORT yinyangkmeansv4_updatestep_test := MODULE
+EXPORT yinyangkmeansv4 := MODULE
 
 	// Working structure for cluster distance logic
   SHARED ClusterPair:=RECORD
@@ -539,7 +540,7 @@ EXPORT yinyangkmeansv4_updatestep_test := MODULE
 		dDistancesSub := JOIN(dUpperBound,dDistances, LEFT.x = RIGHT.x AND LEFT.y = RIGHT.y,RIGHT ONLY);
 
     K := COUNT(d02)/2;
-    t:=10;
+    t:=2;
     temp := t * 2;
     tempDt := dCentroid0[1..temp];
 		nt := 5;
@@ -729,10 +730,10 @@ EXPORT yinyangkmeansv4_updatestep_test := MODULE
 					dClusterCountout := JOIN(dClusterCountsIn, dClusterCountsUpdate, LEFT.x = RIGHT.x ,TRANSFORM(lInput,SELF.id := 4;SELF.values:=LEFT.values+[RIGHT.value];SELF.y := RIGHT.y;SELF.converge := bConverged; SELF.iter := c;SELF:=LEFT;));
 					SHARED dOutput := dCentroidsOut+ dUbOut + dLbsOut + dClusterCountout;
 			
-    			// action := PARALLEL(output_dDistances0, output_dUpperBound, output_Gt, output_groups, output_dLowerBound, action00,action0,action1,action2, action3,action4,output_dGroupDeltaC,action5,action6,action7,action8,action9,action10,action11,action12,action13,action14,action15,action16,action17,action18,action19,action20,action21,action22,action23,action24,action25,action26,action27,action28,action29,action30,action31,action32,action33, action34);
+    			action := PARALLEL(output_dDistances0, output_dUpperBound, output_Gt, output_groups, output_dLowerBound, action00,action0,action1,action2, action3,action4,output_dGroupDeltaC,action5,action6,action7,action8,action9,action10,action11,action12,action13,action14,action15,action16,action17,action18,action19,action20,action21,action22,action23,action24,action25,action26,action27,action28,action29,action30,action31,action32,action33, action34);
 			// action := PARALLEL(action8,action9,action10,action11,action12,action13);	
-			RETURN dOutput;
-			// RETURN WHEN(dOutput, action);
+			// RETURN dOutput;
+			RETURN WHEN(dOutput, action);
 		END;
 		dIterationResults :=LOOP(dInput,LEFT.converge = False AND COUNTER <= n - 1,fIterate(ROWS(LEFT),COUNTER));
 		dResults := TABLE(dIterationResults(id=1), {x, TYPEOF(Types.NumericField.number) number := y, values});
